@@ -34,7 +34,7 @@ addon.defineStreamHandler(async function(args, callback) {
 		]).then(results => {
 			const torrents = _.uniqBy(_.flatten(results), 'magnetLink')
 			.filter(torrent => torrent.seeders > 0)
-			.filter(torrent => results[0].includes(torrent) || seriesInfo.matchesName(escapeTitle(torrent.name)))
+			.filter(torrent => seriesInfo.matchesName(escapeTitle(torrent.name)))
 			.sort((a, b) => b.seeders - a.seeders)
 			.slice(0, 5);
 
@@ -154,7 +154,7 @@ const seriesInformation = async args => {
 			seriesTitle: seriesTitle,
 			episodeTitle:`${seriesTitle} s${season}e${episode}`,
 			nameMatcher: new RegExp(
-				`^\\b${seriesTitle}\\b.*` + // match series title followed by any characters
+				`\\b${seriesTitle}\\b.*` + // match series title followed by any characters
 					`(` + // start capturing second condition
 						// first variation
 						`\\bseasons?\\b[^a-zA-Z]*` + // contains 'season'/'seasons' followed by non-alphabetic characters
@@ -196,7 +196,8 @@ const escapeTitle = title => {
 	return title.toLowerCase()
 		.normalize('NFKD') // normalize non-ASCII characters
 		.replace(/[\u0300-\u036F]/g, '')
-		.replace(/[._]+/g, ' ') // replace dots or underscores with spaces
+		.replace(/&/g, 'and')
+		.replace(/[._ ]+/g, ' ') // replace dots or underscores with spaces
 		.replace(/[^\w- ]/gi, ''); // remove all non-alphanumeric chars
 };
 
