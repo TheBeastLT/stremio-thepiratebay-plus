@@ -1,0 +1,26 @@
+{
+  "name": "stremio-thepiratebay-plus",
+  "version": "1.0.0",
+  "main": "src/index.js",
+  "engines": {
+    "npm": "5.6.0",
+    "node": "8.9.4"
+  },
+  "scripts": {
+    "start": "node ./src/index.js",
+    "dev": "nodemon ./src/index.js"
+  },
+  "author": "TheBeastLT <pauliox@beyond.lt>",
+  "license": "MIT",
+  "dependencies": {
+    "imdb": "https://github.com/ThanosDi/imdb.git",
+    "lodash": "^4.17.5",
+    "magnet-uri": "^5.1.7",
+    "name-to-imdb": "^2.2.0",
+    "stremio-addons": "^2.8.13",
+    "cheerio": "^0.22.0",
+    "request": "^2.75.0",
+    "torrent-stream": "^1.1.0",
+    "video-extensions": "^1.1.0"
+  }
+}
