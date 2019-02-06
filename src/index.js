@@ -1,4 +1,4 @@
-const Stremio = require('stremio-addons');
+const addonSDK = require('stremio-addon-sdk');
 const magnet = require('magnet-uri');
 const videoExtensions = require('video-extensions');
 const _ = require('lodash');
@@ -8,119 +8,96 @@ const {
 	ptbSearch
 } = require('./tools');
 
-const manifest = {
-	'id': 'org.stremio.thepiratebay.plus',
-	'version': '1.0.0',
-	'name': 'ThePirateBay+ Addon',
-	'description': 'Fetch PirateBay entries on a single episode or series.',
-	'icon': 'https://static.wareziens.net/wp-content/image.php?url=http://www.turbopix.fr/up/1326291999.png',
-	'logo': 'https://static.wareziens.net/wp-content/image.php?url=http://www.turbopix.fr/up/1326291999.png',
-	'isFree': true,
-	'dontAnnounce': true,
-	'email': 'pauliox@beyond.lt',
-	'endpoint': process.env.ENDPOINT,
-	'types': ['movie', 'series'],
-	'background':'http://wallpapercraze.com/images/wallpapers/thepiratebay-77708.jpeg',
-	'idProperty': ['ptb_id', 'imdb_id'], // the property to use as an ID for your add-on; your add-on will be preferred for items with that property; can be an array
-	// We need this for pre-4.0 Stremio, it's the obsolete equivalent of types/idProperty
-	'filter': { 'query.imdb_id': { '$exists': true }, 'query.type': { '$in':['series','movie'] } }
-};
+const addon = new addonSDK({
+	id: 'com.stremio.thepiratebay.plus',
+	version: '1.0.0',
+	name: 'ThePirateBay+',
+	description: 'Search for movies and series from ThePirateBay',
+	catalogs: [],
+	resources: ['stream'],
+	types: ['movie', 'series'],
+	idPrefixes: ['tt'],
+	background:'http://wallpapercraze.com/images/wallpapers/thepiratebay-77708.jpeg',
+	logo: 'https://cdn.freebiesupply.com/logos/large/2x/the-pirate-bay-logo-png-transparent.png',
+	contactEmail: 'pauliox@beyond.lt'
+});
 
-const manifestLocal = {
-	'id': 'org.stremio.thepiratebay.plus',
-	'version': '1.0.0',
-	'name': 'ThePirateBay+ Addon local',
-	'description': 'Fetch PirateBay entries on a single episode or series. local',
-	'icon': 'https://static.wareziens.net/wp-content/image.php?url=http://www.turbopix.fr/up/1326291999.png',
-	'logo': 'https://static.wareziens.net/wp-content/image.php?url=http://www.turbopix.fr/up/1326291999.png',
-	'isFree': true,
-	'dontAnnounce': true,
-	'email': 'pauliox@beyond.lt',
-	'endpoint': 'http://localhost:7000/stremioget/stremio/v1',
-	'types': ['movie', 'series'],
-	'background':'http://wallpapercraze.com/images/wallpapers/thepiratebay-77708.jpeg',
-	'idProperty': ['ptb_id', 'imdb_id'], // the property to use as an ID for your add-on; your add-on will be preferred for items with that property; can be an array
-	// We need this for pre-4.0 Stremio, it's the obsolete equivalent of types/idProperty
-	'filter': { 'query.imdb_id': { '$exists': true }, 'query.type': { '$in':['series','movie'] } }
-};
+addon.defineStreamHandler(async function(args, callback) {
+	if (args.type === 'series') {
+		const seriesInfo = await seriesInformation(args);
+		console.log(seriesInfo.episodeTitle);
 
-const addon = new Stremio.Server({
-	'stream.find': async (args, callback) => {
-		if (args.query.type === 'series') {
-			const seriesInfo = await seriesInformation(args);
-			console.log(seriesInfo.episodeTitle);
+		Promise.all([
+			ptbSearch(seriesInfo.imdb),
+			ptbSearch(seriesInfo.seriesTitle),
+			ptbSearch(seriesInfo.episodeTitle)
+		]).then(results => {
+			const torrents = _.uniqBy(_.flatten(results), 'magnetLink')
+			.filter(torrent => torrent.seeders > 0)
+			.filter(torrent => seriesInfo.matches(escapeTitle(torrent.name)))
+			.sort((a, b) => b.seeders - a.seeders)
+			.slice(0, 5);
 
-			Promise.all([
-					ptbSearch(seriesInfo.imdb),
-					ptbSearch(seriesInfo.seriesTitle),
-					ptbSearch(seriesInfo.episodeTitle)
-			]).then(results => {
-				const torrents = _.uniqBy(_.flatten(results), 'magnetLink')
-					.filter(torrent => torrent.seeders > 0)
-					.filter(torrent => seriesInfo.matches(escapeTitle(torrent.name)))
-					.sort((a, b) => b.seeders - a.seeders)
-					.slice(0, 5);
+			Promise.all(torrents.map(async torrent => await openFiles(torrent)))
+			.then(torrents => {
+				console.log('opened torrents: ', torrents.map(torrent => torrent.name));
 
-				Promise.all(torrents.map(async torrent => await openFiles(torrent)))
-				.then(torrents => {
-					console.log('opened torrents: ', torrents.map(torrent => torrent.name));
+				const streams = torrents
+				.filter(torrent => torrent.files)
+				.map(torrent => findEpisode(torrent, seriesInfo))
+				.filter(torrent => torrent.episode)
+				.map(torrent => {
+					const { infoHash } = magnet.decode(torrent.magnetLink);
+					const availability = torrent.seeders < 5 ? 1 : 2;
+					const title = `${torrent.name.replace(/,/g, ' ')}\n${torrent.episode.fileName}\n👤 ${torrent.seeders}`;
 
-					const streams = torrents
-						.filter(torrent => torrent.files)
-						.map(torrent => findEpisode(torrent, seriesInfo))
-						.filter(torrent => torrent.episode)
-						.map(torrent => {
-								const { infoHash } = magnet.decode(torrent.magnetLink);
-								const availability = torrent.seeders < 5 ? 1 : 2;
-								const title = `${torrent.name.replace(/,/g, ' ')}\n${torrent.episode.fileName}\n👤 ${torrent.seeders}`;
-
-								return {
-									infoHash: infoHash,
-									fileIdx: torrent.episode.fileId,
-									name: 'TPB',
-									title: title,
-									availability: availability
-								};
-							})
-							.filter(stream => stream.infoHash);
-					console.log('streams: ', streams.map(stream => stream.title));
-					return callback(null, streams);
-				}).catch((error) => {
-					console.log(error);
-					return callback(new Error(error.message))
-				});
+					return {
+						infoHash: infoHash,
+						fileIdx: torrent.episode.fileId,
+						name: 'TPB',
+						title: title,
+						availability: availability
+					};
+				})
+				.filter(stream => stream.infoHash);
+				console.log('streams: ', streams.map(stream => stream.title));
+				return callback(null, { streams: streams });
 			}).catch((error) => {
 				console.log(error);
 				return callback(new Error(error.message))
 			});
-		} else {
-			try {
-				const results = await Promise.all([
-						ptbSearch(args.query.imdb_id),
-						movieTitle(args).then(title => ptbSearch(title))
-				]);
+		}).catch((error) => {
+			console.log(error);
+			return callback(new Error(error.message))
+		});
+	} else {
+		try {
+			const results = await Promise.all([
+				ptbSearch(args.id),
+				movieTitle(args.id).then(title => ptbSearch(title))
+			]);
+			const streams = _.uniqBy(_.flatten(results), 'magnetLink')
+			.filter(torrent => torrent.seeders > 0)
+			.sort((a, b) => b.seeders - a.seeders)
+			.slice(0, 4)
+			.map(torrent => {
+				const {infoHash} = magnet.decode(torrent.magnetLink);
+				const availability = torrent.seeders < 5 ? 1 : 2;
+				const detail = `${torrent.name}\n👤 ${torrent.seeders}`;
+				return {
+					infoHash,
+					name: 'TPB',
+					title: detail,
+					availability
+				};
+			});
 
-				return callback(null, _.uniqBy(_.flatten(results), 'magnetLink')
-					.filter(torrent => torrent.seeders > 0)
-					.sort((a, b) => b.seeders - a.seeders)
-					.slice(0, 4)
-					.map(torrent => {
-						const {infoHash} = magnet.decode(torrent.magnetLink);
-						const availability = torrent.seeders < 5 ? 1 : 2;
-						const detail = `${torrent.name}\n👤 ${torrent.seeders}`;
-						return {
-							infoHash,
-							name: 'TPB',
-							title: detail,
-							availability
-						};
-					}));
-			} catch (error) {
-				return callback(new Error(error.message))
-			}
+			return callback(null, { streams: streams });
+		} catch (error) {
+			return callback(new Error(error.message))
 		}
-	},
-}, manifest);
+	}
+});
 
 /*
  * Reads torrent files and tries to find a matched series episode.
@@ -163,16 +140,17 @@ const openFiles = async torrent => {
  */
 const seriesInformation = async args => {
 	try {
-		const seriesTitle = await movieTitle(args);
+		const idInfo = args.id.split(':');
+		const seriesTitle = await movieTitle(idInfo[0]);
 
-		const seasonNum = parseInt(args.query.season);
-		const episodeNum = parseInt(args.query.episode);
+		const seasonNum = parseInt(idInfo[1]);
+		const episodeNum = parseInt(idInfo[2]);
 
 		const season = seasonNum < 10 ? `0${seasonNum}` : `${seasonNum}`;
 		const episode = episodeNum < 10 ? `0${episodeNum}` : `${episodeNum}`;
 
 		const seriesInfo = {
-			imdb: args.query.imdb_id,
+			imdb: idInfo[0],
 			seriesTitle: seriesTitle,
 			episodeTitle:`${seriesTitle} s${season}e${episode}`,
 			nameMatcher: new RegExp(
@@ -205,9 +183,9 @@ const seriesInformation = async args => {
 	}
 };
 
-const movieTitle = async args => {
+const movieTitle = async imdbId => {
 	try {
-		const data = await imdbIdToName(args.query.imdb_id);
+		const data = await imdbIdToName(imdbId);
 		let title = (!data.originalTitle || data.originalTitle === 'N/A') ? data.title : data.originalTitle;
 		return escapeTitle(title);
 	} catch (e) {
@@ -223,10 +201,8 @@ const escapeTitle = title => {
 		.replace(/[^\w- ]/gi, ''); // remove all non-alphanumeric chars
 };
 
-const server = require('http').createServer((req, res) => {
-	addon.middleware(req, res, function() { res.end() }); // wire the middleware - also compatible with connect / express
-})
-	.on('listening', () => {
-		console.log(`Piratebay Stremio Addon listening on ${server.address().port}`);
-	})
-	.listen(process.env.PORT || 7000);
+
+const url = process.env.ENDPOINT ? process.env.ENDPOINT + "/manifest.json" : "https://localhost:7000/manifest.json";
+addon.runHTTPWithOptions({ port: process.env.PORT || 7000 });
+addon.publishToWeb(url);
+addon.publishToCentral(url);
