@@ -34,7 +34,7 @@ addon.defineStreamHandler(async function(args, callback) {
 		]).then(results => {
 			const torrents = _.uniqBy(_.flatten(results), 'magnetLink')
 			.filter(torrent => torrent.seeders > 0)
-			.filter(torrent => seriesInfo.matches(escapeTitle(torrent.name)))
+			.filter(torrent => seriesInfo.matchesName(escapeTitle(torrent.name)))
 			.sort((a, b) => b.seeders - a.seeders)
 			.slice(0, 5);
 
@@ -168,6 +168,7 @@ const seriesInformation = async args => {
 						`|\\bs[01]?\\d\\b[^a-zA-Z]*-[^a-zA-Z]*\\bs[01]?\\d\\b` + // or contains season range 's01 - s04'/'s01.-.s04'/'s1-s12'
 						// fourth variation
 						`|((\\bcomplete|all|full\\b).*(\\bseries|seasons|collection\\b))` + // or contains any two word variation from (complete,all,full)+(series,seasons)
+            `|\\bs?0?${seasonNum}[^0-9]+${episode}\\b` + // or matches episode info
 					`)` // finish capturing second condition
 			, 'i'), // case insensitive matcher
 			episodeMatcher: new RegExp(
@@ -176,7 +177,6 @@ const seriesInformation = async args => {
 		};
 		seriesInfo.matchesName = title => seriesInfo.nameMatcher.test(title);
 		seriesInfo.matchesEpisode = title => seriesInfo.episodeMatcher.test(title);
-		seriesInfo.matches = title => seriesInfo.matchesName(title) || seriesInfo.matchesEpisode(title);
 		return seriesInfo;
 	} catch (e) {
 		return new Error(e.message);
