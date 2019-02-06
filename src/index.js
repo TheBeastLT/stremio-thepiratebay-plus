@@ -171,7 +171,7 @@ const seriesInformation = async args => {
 					`)` // finish capturing second condition
 			, 'i'), // case insensitive matcher
 			episodeMatcher: new RegExp(
-					`\\bs?0?${seasonNum}[^0-9]*(x|ep?)?${episode}\\b`// match episode naming cases S01E01/1x01/S1.EP01..
+					`\\bs?0?${seasonNum}[^0-9]*${episode}\\b`// match episode naming cases S01E01/1x01/S1.EP01..
 					, 'i'), // case insensitive matcher
 		};
 		seriesInfo.matchesName = title => seriesInfo.nameMatcher.test(title);
@@ -186,8 +186,7 @@ const seriesInformation = async args => {
 const movieTitle = async imdbId => {
 	try {
 		const data = await imdbIdToName(imdbId);
-		let title = (!data.originalTitle || data.originalTitle === 'N/A') ? data.title : data.originalTitle;
-		return escapeTitle(title);
+		return escapeTitle(data.title);
 	} catch (e) {
 		return new Error(e.message);
 	}
