@@ -44,7 +44,7 @@ const ptbSearch = async (query, retries = 0) => {
 		return [];
 	}
 	return pirata.search(
-			query,
+			query.substring(0, 60),
 			{
 				proxyList: proxyList,
 				timeout: 3000,

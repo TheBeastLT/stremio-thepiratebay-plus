@@ -175,7 +175,9 @@ const seriesInformation = async args => {
 					`\\bs?0?${seasonNum}[^0-9]*${episode}\\b`// match episode naming cases S01E01/1x01/S1.EP01..
 					, 'i'), // case insensitive matcher
 		};
-		seriesInfo.matchesName = title => seriesInfo.nameMatcher.test(title);
+		seriesInfo.matchesName = title => seriesTitle.length > 50
+					? seriesTitle.includes(title)
+					: seriesInfo.nameMatcher.test(title);
 		seriesInfo.matchesEpisode = title => seriesInfo.episodeMatcher.test(title);
 		return seriesInfo;
 	} catch (e) {
@@ -198,7 +200,8 @@ const escapeTitle = title => {
 		.replace(/[\u0300-\u036F]/g, '')
 		.replace(/&/g, 'and')
 		.replace(/[._ ]+/g, ' ') // replace dots or underscores with spaces
-		.replace(/[^\w- ]/gi, ''); // remove all non-alphanumeric chars
+		.replace(/[^\w- ]/gi, '') // remove all non-alphanumeric chars
+		.trim();
 };
 
 
