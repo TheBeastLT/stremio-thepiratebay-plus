@@ -29,7 +29,6 @@ addon.defineStreamHandler(async function(args, callback) {
 
 	if (args.type === 'series') {
 		const seriesInfo = await seriesInformation(args);
-		console.log(seriesInfo.episodeTitle);
 
 		Promise.all([
 			ptbSearch(seriesInfo.imdb),
@@ -215,7 +214,7 @@ const escapeTitle = title => {
 		.normalize('NFKD') // normalize non-ASCII characters
 		.replace(/[\u0300-\u036F]/g, '')
 		.replace(/&/g, 'and')
-		.replace(/[._ ]+/g, ' ') // replace dots or underscores with spaces
+		.replace(/[.,_ ]+/g, ' ') // replace dots, commas or underscores with spaces
 		.replace(/[^\w- ]/gi, '') // remove all non-alphanumeric chars
 		.trim();
 };
