@@ -48,20 +48,21 @@ addon.defineStreamHandler(async function(args, callback) {
 				const streams = torrents
 				.filter(torrent => torrent.files)
 				.map(torrent => findEpisode(torrent, seriesInfo))
-				.filter(torrent => torrent.episode)
-				.map(torrent => {
+				.filter(torrent => torrent.episodes)
+				.map(torrent => torrent.episodes.map(episode => {
 					const { infoHash } = magnet.decode(torrent.magnetLink);
 					const availability = torrent.seeders < 5 ? 1 : 2;
-					const title = `${torrent.name.replace(/,/g, ' ')}\n${torrent.episode.fileName}\n👤 ${torrent.seeders}`;
+					const title = `${torrent.name.replace(/,/g, ' ')}\n${episode.fileName}\n👤 ${torrent.seeders}`;
 
 					return {
 						infoHash: infoHash,
-						fileIdx: torrent.episode.fileId,
+						fileIdx: episode.fileId,
 						name: 'TPB',
 						title: title,
 						availability: availability
 					};
-				})
+				}))
+				.reduce((a,b) => a.concat(b), [])
 				.filter(stream => stream.infoHash);
 				console.log('streams: ', streams.map(stream => stream.title));
 				return callback(null, { streams: streams });
@@ -110,7 +111,7 @@ addon.defineStreamHandler(async function(args, callback) {
  */
 const findEpisode = (torrent, seriesInfo) => {
 	try {
-		torrent.episode = torrent.files
+		torrent.episodes = torrent.files
 			.map((file, fileId) => {
 				return {
 					fileName: file.name,
@@ -120,7 +121,7 @@ const findEpisode = (torrent, seriesInfo) => {
 			})
 			.filter(file => videoExtensions.indexOf(file.fileName.split('.').pop()) !== -1)
 			.sort((a, b) => b.fileSize - a.fileSize)
-			.find(file => seriesInfo.matchesEpisode(escapeTitle(file.fileName)));
+			.filter(file => seriesInfo.matchesEpisode(escapeTitle(file.fileName)));
 		return torrent;
 	} catch (e) {
 		console.log(e);
@@ -174,7 +175,7 @@ const seriesInformation = async args => {
 						// third variation
 						`|\\bs[01]?\\d\\b[^a-zA-Z]*-[^a-zA-Z]*\\bs[01]?\\d\\b` + // or contains season range 's01 - s04'/'s01.-.s04'/'s1-s12'
 						// fourth variation
-					`|((\\bcomplete|all|full|mini|collection\\b).*(\\bseries|seasons?|collection\\b))` + // or contains any two word variation
+					`|((\\bcomplete|all|full|mini|collection\\b).*(\\bseries|seasons|collection\\b))` + // or contains any two word variation
             `|\\bs?0?${seasonNum}[^0-9]+${episode}\\b` + // or matches episode info
 					`)` // finish capturing second condition
 			, 'i'), // case insensitive matcher
