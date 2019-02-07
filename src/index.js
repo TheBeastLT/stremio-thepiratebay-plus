@@ -74,7 +74,10 @@ addon.defineStreamHandler(async function(args, callback) {
 		try {
 			const results = await Promise.all([
 				ptbSearch(args.id),
-				movieTitle(args.id).then(title => ptbSearch(title))
+				movieInformation(args.id)
+					.then(movieInfo => ptbSearch(movieInfo.title)
+						.then(results => results
+							.filter(torrent => movieInfo.matchesName(escapeTitle(torrent.name)))))
 			]);
 			const streams = _.uniqBy(_.flatten(results), 'magnetLink')
 			.filter(torrent => torrent.seeders > 0)
@@ -141,7 +144,8 @@ const openFiles = async torrent => {
 const seriesInformation = async args => {
 	try {
 		const idInfo = args.id.split(':');
-		const seriesTitle = await movieTitle(idInfo[0]);
+		const data = await imdbIdToName(idInfo[0]);
+		const seriesTitle = escapeTitle(data.title);
 
 		const seasonNum = parseInt(idInfo[1]);
 		const episodeNum = parseInt(idInfo[2]);
@@ -185,10 +189,18 @@ const seriesInformation = async args => {
 	}
 };
 
-const movieTitle = async imdbId => {
+/*
+ * Construct movie info based on imdb_id
+ */
+const movieInformation = async imdbId => {
 	try {
 		const data = await imdbIdToName(imdbId);
-		return escapeTitle(data.title);
+		const movieInfo = {
+			title: escapeTitle(data.title),
+			year: data.year
+		};
+		movieInfo.matchesName = title => title.includes(movieInfo.title) && title.includes(movieInfo.year);
+		return movieInfo;
 	} catch (e) {
 		return new Error(e.message);
 	}
