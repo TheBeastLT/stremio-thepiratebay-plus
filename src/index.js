@@ -175,12 +175,12 @@ const seriesInformation = async args => {
 						// third variation
 						`|\\bs[01]?\\d\\b[^a-zA-Z]*-[^a-zA-Z]*\\bs[01]?\\d\\b` + // or contains season range 's01 - s04'/'s01.-.s04'/'s1-s12'
 						// fourth variation
-					`|((\\bcomplete|all|full|mini|collection\\b).*(\\bseries|seasons|collection\\b))` + // or contains any two word variation
-            `|\\bs?0?${seasonNum}[^0-9]+${episode}\\b` + // or matches episode info
+						`|((\\bcomplete|all|full|mini|collection\\b).*(\\bseries|seasons|collection\\b))` + // or contains any two word variation
+						`|\\bs?${season}[^\\d]+${episode}\\b` + // or matches episode info
 					`)` // finish capturing second condition
 			, 'i'), // case insensitive matcher
 			episodeMatcher: new RegExp(
-					`\\bs?0?${seasonNum}[^0-9]*${episode}\\b`// match episode naming cases S01E01/1x01/S1.EP01..
+					`\\bs?0?${seasonNum}((?!\\d).+(?<!\d))?${episode}(?!\\d)`// match episode naming cases S01E01/1x01/S1.EP01..
 					, 'i'), // case insensitive matcher
 		};
 		seriesInfo.matchesName = title => seriesTitle.length > 50
