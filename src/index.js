@@ -122,6 +122,16 @@ const findEpisode = (torrent, seriesInfo) => {
     .filter(file => videoExtensions.includes(file.fileName.split('.').pop()))
     .sort((a, b) => b.fileSize - a.fileSize)
     .filter(file => seriesInfo.matchesEpisode(escapeTitle(file.fileName)));
+
+    // try to prune out extras
+    if (torrent.episodes.length > 1) {
+      const pruned = torrent.episodes
+      .filter(episode => episode.fileName.match(/extra/gi));
+      if (pruned.length > 0) {
+        torrent.episodes = pruned;
+      }
+    }
+
     return torrent;
   } catch (e) {
     console.log(e);
@@ -171,17 +181,17 @@ const seriesInformation = async args => {
           `|\\b[01]?\\d\\b[^a-zA-Z]*-[^a-zA-Z]*\\b[01]?\\d\\b` + // or followed by season range '1-4'/'01-04'/'1-12'
           `)` + // finish capturing subcondition
           // second variation
-          `|\\bs${season}\\b` + // or constrains only season identifier 's04'/'s12'
+          `|\\bs${season}\\b(?!\\W*[ex]p?\\W*\\d{1,2})` + // or constrains only season identifier 's04'/'s12'
           // third variation
           `|\\bs[01]?\\d\\b[^a-zA-Z]*-[^a-zA-Z]*\\bs[01]?\\d\\b` + // or contains season range 's01 - s04'/'s01.-.s04'/'s1-s12'
           // fourth variation
           `|((\\bcomplete|all|full|mini|collection\\b).*(\\bseries|seasons|collection\\b))`
           + // or contains any two word variation
-          `|\\bs?${season}[^\\d]+${episode}\\b` + // or matches episode info
+          `|\\bs?${season}\\W*[ex]p?\\W*${episode}\\b` + // or matches episode info
           `)` // finish capturing second condition
           , 'i'), // case insensitive matcher
       episodeMatcher: new RegExp(
-          `\\bs?0?${seasonNum}((?!\\d).+(?<!\d))?${episode}(?!\\d)`// match episode naming cases S01E01/1x01/S1.EP01..
+          `\\bs?0?${seasonNum}(?:\\s?(?:[ex-]|ep|episode|[ex]p?\\s?\\d{1,2}(?!\\d))\\s?)+0?${episode}(?!\\d)`// match episode naming cases S01E01/1x01/S1.EP01..
           , 'i'), // case insensitive matcher
     };
     seriesInfo.matchesName = title => seriesTitle.length > 50
