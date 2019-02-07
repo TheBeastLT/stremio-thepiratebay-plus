@@ -37,7 +37,12 @@ addon.defineStreamHandler(async function (args, callback) {
     ]).then(results => {
       const torrents = _.uniqBy(_.flatten(results), 'magnetLink')
       .filter(torrent => torrent.seeders > 0)
-      .filter(torrent => seriesInfo.matchesName(escapeTitle(torrent.name, false)))
+      .filter(torrent => {
+        const name = results[0].includes(torrent)
+            ? `${seriesInfo.seriesTitle} ${torrent.name}` // for imdbId results we only care about the season info
+            : torrent.name;
+        return seriesInfo.matchesName(escapeTitle(name, false))
+      })
       .sort((a, b) => b.seeders - a.seeders)
       .slice(0, 5);
 
