@@ -23,6 +23,10 @@ const addon = new addonSDK({
 });
 
 addon.defineStreamHandler(async function(args, callback) {
+	if(!args.id.match(/tt\d+/i)) {
+		return callback(null, { streams: [] });
+	}
+
 	if (args.type === 'series') {
 		const seriesInfo = await seriesInformation(args);
 		console.log(seriesInfo.episodeTitle);

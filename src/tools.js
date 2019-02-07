@@ -9,14 +9,15 @@ const imdbIdToName = imdbId => {
 	}
 	return new Promise(function (resolve, rejected) {
 		imdb(imdbId, function(err, data) {
-			if(err || !data){
+			if(err){
 				rejected(new Error("failed imdb mapping"));
+			} else {
+				cache[imdbId] = {
+					title: data.title,
+					year: data.year
+				};
+				resolve(cache[imdbId]);
 			}
-			cache[imdbId] = {
-				title: data.title,
-				year: data.year
-			};
-			resolve(cache[imdbId]);
 		});
 	});
 };
