@@ -1,11 +1,9 @@
 const torrentStream = require('torrent-stream');
 const pirata = require("./pirata.js");
 
-const torrentStreamEngine = magnetLink => {
+module.exports.torrentFiles = magnetLink => {
   return new Promise(function (resolve, rejected) {
-    const engine = new torrentStream(magnetLink, {
-      connections: 30
-    });
+    const engine = new torrentStream(magnetLink);
     engine.ready(() => {
       const files = engine.files;
       engine.destroy();
@@ -20,18 +18,15 @@ const torrentStreamEngine = magnetLink => {
 
 const proxyList = process.env.PROXIES
     ? process.env.PROXIES.split(",")
-    : ['https://pirateproxy.sh', 'https://pirateproxy.gdn'];
-const ptbSearch = async (query, retries = 0) => {
-  if (retries > 2) {
-    console.log(`failed \"${query}\" query.`);
-    return [];
-  }
+    : ['https://pirateproxy.sh'];
+module.exports.torrentSearch = (query, page = 0) => {
   return pirata.search(
-      query.substring(0, 60),
+      query && query.substring(0, 60),
       {
         proxyList: proxyList,
         timeout: 3000,
-        cat: pirata.categories.Video
+        cat: pirata.categories.Video,
+        page: page
       }
   )
   .then(results => {
@@ -39,12 +34,7 @@ const ptbSearch = async (query, retries = 0) => {
     return results;
   })
   .catch(err => {
-    console.log(`retrying \"${query}\" query...`);
-    return ptbSearch(query, retries + 1);
+    console.log(`failed \"${query}\" query.`);
+    return [];
   });
-};
-
-module.exports = {
-  torrentStreamEngine,
-  ptbSearch
 };

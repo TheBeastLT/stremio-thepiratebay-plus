@@ -2,7 +2,7 @@ const addonSDK = require('stremio-addon-sdk');
 const magnet = require('magnet-uri');
 const videoExtensions = require('video-extensions');
 const _ = require('lodash');
-const {torrentStreamEngine, ptbSearch} = require('./tools');
+const {torrentSearch, torrentFiles} = require('./torrent');
 const {getMetadata} = require('./metadata');
 
 const addon = new addonSDK({
@@ -28,9 +28,9 @@ addon.defineStreamHandler(async function (args, callback) {
     const seriesInfo = await seriesInformation(args);
 
     Promise.all([
-      ptbSearch(seriesInfo.imdb),
-      ptbSearch(seriesInfo.seriesTitle),
-      ptbSearch(seriesInfo.episodeTitle)
+      torrentSearch(seriesInfo.imdb),
+      torrentSearch(seriesInfo.seriesTitle),
+      torrentSearch(seriesInfo.episodeTitle)
     ]).then(results => {
       const torrents = _.uniqBy(_.flatten(results), 'magnetLink')
       .filter(torrent => torrent.seeders > 0)
@@ -79,9 +79,9 @@ addon.defineStreamHandler(async function (args, callback) {
   } else {
     try {
       const results = await Promise.all([
-        ptbSearch(args.id),
+        torrentSearch(args.id),
         movieInformation(args)
-        .then(movieInfo => ptbSearch(movieInfo.title)
+        .then(movieInfo => torrentSearch(movieInfo.title)
         .then(results => results
         .filter(torrent => movieInfo.matchesName(escapeTitle(torrent.name)))))
       ]);
@@ -144,14 +144,16 @@ const findEpisode = (torrent, seriesInfo) => {
 /*
  * Append torrent files to the object.
  */
-const openFiles = async torrent => {
-  try {
-    torrent.files = await torrentStreamEngine(torrent.magnetLink);
+const openFiles = torrent => {
+  return torrentFiles(torrent.magnetLink)
+  .then(files => {
+    torrent.files = files;
     return torrent;
-  } catch (e) {
-    console.log("failed opening:", torrent.name);
+  })
+  .catch(err => {
+    console.log(`failed opening: ${torrent.name}:${torrent.seeders}`);
     return torrent;
-  }
+  });
 };
 
 /*

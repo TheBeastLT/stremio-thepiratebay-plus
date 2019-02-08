@@ -19,12 +19,16 @@ module.exports.categories =
       Porn: 500
     };
 
-module.exports.search = function (keyword, config = {}) {
+module.exports.search = function (keyword, config = {}, retries = 2) {
+  if (!keyword || retries === 0) {
+    return new Error(`Failed ${keyword} search`);
+  }
   const proxyList = config.proxyList || defaultProxies;
 
   return raceFirstSuccessful(proxyList
   .map(proxyUrl => singleRequest(keyword, proxyUrl, config)))
   .then(body => parseBody(body))
+  .catch(err => search(keyword, config, retries--))
 };
 
 const singleRequest = (keyword, url, config = {}) => {
