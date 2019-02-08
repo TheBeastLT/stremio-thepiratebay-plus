@@ -1,26 +1,5 @@
-const imdb = require('imdb');
 const torrentStream = require('torrent-stream');
 const pirata = require("./pirata.js");
-
-const cache = {};
-const imdbIdToName = imdbId => {
-  if (cache[imdbId]) {
-    return cache[imdbId];
-  }
-  return new Promise(function (resolve, rejected) {
-    imdb(imdbId, function (err, data) {
-      if (err) {
-        rejected(new Error("failed imdb mapping"));
-      } else {
-        cache[imdbId] = {
-          title: data.title,
-          year: data.year
-        };
-        resolve(cache[imdbId]);
-      }
-    });
-  });
-};
 
 const torrentStreamEngine = magnetLink => {
   return new Promise(function (resolve, rejected) {
@@ -66,7 +45,6 @@ const ptbSearch = async (query, retries = 0) => {
 };
 
 module.exports = {
-  imdbIdToName,
   torrentStreamEngine,
   ptbSearch
 };

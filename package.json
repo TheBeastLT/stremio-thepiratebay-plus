@@ -13,7 +13,7 @@
   "author": "TheBeastLT <pauliox@beyond.lt>",
   "license": "MIT",
   "dependencies": {
-    "imdb": "https://github.com/ThanosDi/imdb.git",
+    "imdb": "^1.1.0",
     "lodash": "^4.17.5",
     "magnet-uri": "^5.1.7",
     "name-to-imdb": "^2.2.0",

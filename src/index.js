@@ -2,11 +2,8 @@ const addonSDK = require('stremio-addon-sdk');
 const magnet = require('magnet-uri');
 const videoExtensions = require('video-extensions');
 const _ = require('lodash');
-const {
-  imdbIdToName,
-  torrentStreamEngine,
-  ptbSearch
-} = require('./tools');
+const {torrentStreamEngine, ptbSearch} = require('./tools');
+const {getMetadata} = require('./metadata');
 
 const addon = new addonSDK({
   id: 'com.stremio.thepiratebay.plus',
@@ -83,7 +80,7 @@ addon.defineStreamHandler(async function (args, callback) {
     try {
       const results = await Promise.all([
         ptbSearch(args.id),
-        movieInformation(args.id)
+        movieInformation(args)
         .then(movieInfo => ptbSearch(movieInfo.title)
         .then(results => results
         .filter(torrent => movieInfo.matchesName(escapeTitle(torrent.name)))))
@@ -163,7 +160,7 @@ const openFiles = async torrent => {
 const seriesInformation = async args => {
   try {
     const idInfo = args.id.split(':');
-    const data = await imdbIdToName(idInfo[0]);
+    const data = await getMetadata(idInfo[0], args.type);
     const seriesTitle = escapeTitle(data.title);
 
     const seasonNum = parseInt(idInfo[1]);
@@ -212,9 +209,9 @@ const seriesInformation = async args => {
 /*
  * Construct movie info based on imdb_id
  */
-const movieInformation = async imdbId => {
+const movieInformation = async args => {
   try {
-    const data = await imdbIdToName(imdbId);
+    const data = await getMetadata(args.id, args.type);
     const movieInfo = {
       title: escapeTitle(data.title),
       year: data.year
