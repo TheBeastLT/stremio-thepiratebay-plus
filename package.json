@@ -13,13 +13,14 @@
   "author": "TheBeastLT <pauliox@beyond.lt>",
   "license": "MIT",
   "dependencies": {
+    "cheerio": "^0.22.0",
     "imdb": "^1.1.0",
     "lodash": "^4.17.5",
     "magnet-uri": "^5.1.7",
     "name-to-imdb": "^2.2.0",
-    "stremio-addon-sdk": "^0.7.1",
-    "cheerio": "^0.22.0",
+    "parse-torrent-title": "^1.2.0",
     "request": "^2.75.0",
+    "stremio-addon-sdk": "^0.7.1",
     "torrent-stream": "^1.1.0",
     "video-extensions": "^1.1.0"
   }

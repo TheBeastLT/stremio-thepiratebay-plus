@@ -3,9 +3,9 @@ const request = require('request');
 
 module.exports.getMetadata = function (imdbId, type) {
   return _getMetadataCache(imdbId)
-  .catch(err => _getMetadataCinemeta(imdbId, type))
-  .catch(err => _getMetadataImdb(imdbId))
-  .then(metadata => cache[imdbId] = metadata);
+      .catch(err => _getMetadataCinemeta(imdbId, type))
+      .catch(err => _getMetadataImdb(imdbId))
+      .then(metadata => cache[imdbId] = metadata);
 };
 
 const cache = {};

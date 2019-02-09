@@ -5,7 +5,14 @@ module.exports.torrentFiles = magnetLink => {
   return new Promise(function (resolve, rejected) {
     const engine = new torrentStream(magnetLink);
     engine.ready(() => {
-      const files = engine.files;
+      const files = engine.files
+          .map((file, fileId) => {
+            return {
+              name: file.name,
+              index: fileId,
+              size: file.length
+            }
+          });
       engine.destroy();
       resolve(files);
     });
@@ -29,12 +36,12 @@ module.exports.torrentSearch = (query, page = 0) => {
         page: page
       }
   )
-  .then(results => {
-    console.log(`pirata: ${query}=${results.length}`);
-    return results;
-  })
-  .catch(err => {
-    console.log(`failed \"${query}\" query.`);
-    return [];
-  });
+      .then(results => {
+        console.log(`pirata: ${query}=${results.length}`);
+        return results;
+      })
+      .catch(err => {
+        console.log(`failed \"${query}\" query.`);
+        return [];
+      });
 };

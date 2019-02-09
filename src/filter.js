@@ -27,7 +27,7 @@ function filterSeriesTitles(torrents, seriesInfo, seasonInfoOnly = false) {
 }
 
 function filterSeriesEpisodes(files, season, episode) {
-  const seasonRegex = season ? season < 10 ? `0?${season}` : `${season}` : `[01]?\\d`;
+  const seasonRegex = season ? season < 10 ? `0?${season}` : `${season}` : `\\d{1,2}`;
   const episodeRegex = episode ? episode < 10 ? `0${episode}` : `${episode}` : `\\d{2}`;
   const fileNameRegex = new RegExp( // match episode naming cases S01E01/1x01/S1.EP01/S01E01-E02..
       `\\bs?${seasonRegex}(?:\\s?(?:[ex-]|ep|episode|[ex]p?\\s?\\d{2}(?!\\d))\\s?)+${episodeRegex}(?!\\d)`,
@@ -44,12 +44,12 @@ function filterMovieTitles(torrents, movieInfo) {
 
 function escapeTitle(title, hyphenEscape = true) {
   return title.toLowerCase()
-  .normalize('NFKD') // normalize non-ASCII characters
-  .replace(/[\u0300-\u036F]/g, '')
-  .replace(/&/g, 'and')
-  .replace(hyphenEscape ? /[.,_+ -]+/g : /[.,_+ ]+/g, ' ') // replace dots, commas or underscores with spaces
-  .replace(/[^\w- ]/gi, '') // remove all non-alphanumeric chars
-  .trim();
+      .normalize('NFKD') // normalize non-ASCII characters
+      .replace(/[\u0300-\u036F]/g, '')
+      .replace(/&/g, 'and')
+      .replace(hyphenEscape ? /[.,_+ -]+/g : /[.,_+ ]+/g, ' ') // replace dots, commas or underscores with spaces
+      .replace(/[^\w- ]/gi, '') // remove all non-alphanumeric chars
+      .trim();
 }
 
 module.exports = {

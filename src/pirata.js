@@ -26,9 +26,9 @@ module.exports.search = function (keyword, config = {}, retries = 2) {
   const proxyList = config.proxyList || defaultProxies;
 
   return raceFirstSuccessful(proxyList
-  .map(proxyUrl => singleRequest(keyword, proxyUrl, config)))
-  .then(body => parseBody(body))
-  .catch(err => search(keyword, config, retries--))
+      .map(proxyUrl => singleRequest(keyword, proxyUrl, config)))
+      .then(body => parseBody(body))
+      .catch(err => search(keyword, config, retries--))
 };
 
 const singleRequest = (keyword, url, config = {}) => {
