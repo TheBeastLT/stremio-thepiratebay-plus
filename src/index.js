@@ -4,6 +4,12 @@ const videoExtensions = require('video-extensions');
 const _ = require('lodash');
 const {torrentSearch, torrentFiles} = require('./torrent');
 const {getMetadata} = require('./metadata');
+const {
+  escapeTitle,
+  filterMovieTitles,
+  filterSeriesTitles,
+  filterSeriesEpisodes
+} = require('./filter');
 
 const addon = new addonSDK({
   id: 'com.stremio.thepiratebay.plus',
@@ -28,18 +34,15 @@ addon.defineStreamHandler(async function (args, callback) {
     const seriesInfo = await seriesInformation(args);
 
     Promise.all([
-      torrentSearch(seriesInfo.imdb),
-      torrentSearch(seriesInfo.seriesTitle),
+      torrentSearch(seriesInfo.imdb)
+      .then(torrents => filterSeriesTitles(torrents, seriesInfo, true)),
+      torrentSearch(seriesInfo.seriesTitle)
+      .then(torrents => filterSeriesTitles(torrents, seriesInfo)),
       torrentSearch(seriesInfo.episodeTitle)
+      .then(torrents => filterSeriesTitles(torrents, seriesInfo))
     ]).then(results => {
       const torrents = _.uniqBy(_.flatten(results), 'magnetLink')
       .filter(torrent => torrent.seeders > 0)
-      .filter(torrent => {
-        const name = results[0].includes(torrent)
-            ? `${seriesInfo.seriesTitle} ${torrent.name}` // for imdbId results we only care about the season info
-            : torrent.name;
-        return seriesInfo.matchesName(escapeTitle(name, false))
-      })
       .sort((a, b) => b.seeders - a.seeders)
       .slice(0, 5);
 
@@ -54,11 +57,11 @@ addon.defineStreamHandler(async function (args, callback) {
         .map(torrent => torrent.episodes.map(episode => {
           const {infoHash} = magnet.decode(torrent.magnetLink);
           const availability = torrent.seeders < 5 ? 1 : 2;
-          const title = `${torrent.name.replace(/,/g, ' ')}\n${episode.fileName}\n👤 ${torrent.seeders}`;
+          const title = `${torrent.name.replace(/,/g, ' ')}\n${episode.name}\n👤 ${torrent.seeders}`;
 
           return {
             infoHash: infoHash,
-            fileIdx: episode.fileId,
+            fileIdx: episode.index,
             name: 'TPB',
             title: title,
             availability: availability
@@ -82,8 +85,7 @@ addon.defineStreamHandler(async function (args, callback) {
         torrentSearch(args.id),
         movieInformation(args)
         .then(movieInfo => torrentSearch(movieInfo.title)
-        .then(results => results
-        .filter(torrent => movieInfo.matchesName(escapeTitle(torrent.name)))))
+        .then(torrents => filterMovieTitles(torrents, movieInfo)))
       ]);
       const streams = _.uniqBy(_.flatten(results), 'magnetLink')
       .filter(torrent => torrent.seeders > 0)
@@ -113,22 +115,21 @@ addon.defineStreamHandler(async function (args, callback) {
  */
 const findEpisode = (torrent, seriesInfo) => {
   try {
-    torrent.episodes = torrent.files
+    const episodes = torrent.files
     .map((file, fileId) => {
       return {
-        fileName: file.name,
-        fileId: fileId,
-        fileSize: file.length
+        name: file.name,
+        index: fileId,
+        size: file.length
       }
     })
-    .filter(file => videoExtensions.includes(file.fileName.split('.').pop()))
-    .sort((a, b) => b.fileSize - a.fileSize)
-    .filter(file => seriesInfo.matchesEpisode(escapeTitle(file.fileName)));
+    .filter(file => videoExtensions.includes(file.name.split('.').pop()));
+    torrent.episodes = filterSeriesEpisodes(episodes, seriesInfo.season, seriesInfo.episode);
 
     // try to prune out extras
     if (torrent.episodes.length > 1) {
       const pruned = torrent.episodes
-      .filter(episode => episode.fileName.match(/extra/gi));
+      .filter(episode => episode.name.match(/extra/gi));
       if (pruned.length > 0) {
         torrent.episodes = pruned;
       }
@@ -162,47 +163,22 @@ const openFiles = torrent => {
 const seriesInformation = async args => {
   try {
     const idInfo = args.id.split(':');
-    const data = await getMetadata(idInfo[0], args.type);
-    const seriesTitle = escapeTitle(data.title);
+    const imdbId = idInfo[0];
+    const season = parseInt(idInfo[1]);
+    const episode = parseInt(idInfo[2]);
+    const seasonString = season < 10 ? `0${season}` : `${season}`;
+    const episodeString = episode < 10 ? `0${episode}` : `${episode}`;
 
-    const seasonNum = parseInt(idInfo[1]);
-    const episodeNum = parseInt(idInfo[2]);
+    const metadata = await getMetadata(imdbId, args.type);
+    const seriesTitle = escapeTitle(metadata.title);
 
-    const season = seasonNum < 10 ? `0${seasonNum}` : `${seasonNum}`;
-    const episode = episodeNum < 10 ? `0${episodeNum}` : `${episodeNum}`;
-
-    const seriesInfo = {
+    return {
       imdb: idInfo[0],
       seriesTitle: seriesTitle,
-      episodeTitle: `${seriesTitle} s${season}e${episode}`,
-      nameMatcher: new RegExp(
-          `\\b${seriesTitle.split(' ').join('[ -]+')}\\b.*` + // match series title followed by any characters
-          `(` + // start capturing second condition
-          // first variation
-          `\\bseasons?\\b[^a-zA-Z]*` + // contains 'season'/'seasons' followed by non-alphabetic characters
-          `(` + // start capturing sub condition
-          `\\bs?0?${seasonNum}\\b` + // followed by season number ex:'4'/'04'/'s04'/'1,2,3,4'/'1 2 3 4'
-          `|\\b[01]?\\d\\b[^a-zA-Z]*-[^a-zA-Z]*\\b[01]?\\d\\b` + // or followed by season range '1-4'/'01-04'/'1-12'
-          `)` + // finish capturing subcondition
-          // second variation
-          `|\\bs${season}\\b(?!\\W*[ex]p?\\W*\\d{1,2})` + // or constrains only season identifier 's04'/'s12'
-          // third variation
-          `|\\bs[01]?\\d\\b[^a-zA-Z]*-[^a-zA-Z]*\\bs[01]?\\d\\b` + // or contains season range 's01 - s04'/'s01.-.s04'/'s1-s12'
-          // fourth variation
-          `|((\\bcomplete|all|full|mini|collection\\b).*(\\bseries|seasons|collection\\b))`
-          + // or contains any two word variation
-          `|\\bs?${season}\\W*[ex]p?\\W*${episode}\\b` + // or matches episode info
-          `)` // finish capturing second condition
-          , 'i'), // case insensitive matcher
-      episodeMatcher: new RegExp(
-          `\\bs?0?${seasonNum}(?:\\s?(?:[ex-]|ep|episode|[ex]p?\\s?\\d{1,2}(?!\\d))\\s?)+0?${episode}(?!\\d)`// match episode naming cases S01E01/1x01/S1.EP01..
-          , 'i'), // case insensitive matcher
+      episodeTitle: `${seriesTitle} s${seasonString}e${episodeString}`,
+      season: season,
+      episode: episode
     };
-    seriesInfo.matchesName = title => seriesTitle.length > 50
-        ? seriesTitle.includes(title)
-        : seriesInfo.nameMatcher.test(title);
-    seriesInfo.matchesEpisode = title => seriesInfo.episodeMatcher.test(title);
-    return seriesInfo;
   } catch (e) {
     return new Error(e.message);
   }
@@ -214,26 +190,13 @@ const seriesInformation = async args => {
 const movieInformation = async args => {
   try {
     const data = await getMetadata(args.id, args.type);
-    const movieInfo = {
+    return {
       title: escapeTitle(data.title),
       year: data.year
     };
-    movieInfo.matchesName = title => title.includes(movieInfo.title)
-        && title.includes(movieInfo.year);
-    return movieInfo;
   } catch (e) {
     return new Error(e.message);
   }
-};
-
-const escapeTitle = (title, hyphenEscape = true) => {
-  return title.toLowerCase()
-  .normalize('NFKD') // normalize non-ASCII characters
-  .replace(/[\u0300-\u036F]/g, '')
-  .replace(/&/g, 'and')
-  .replace(hyphenEscape ? /[.,_+ -]+/g : /[.,_+ ]+/g, ' ') // replace dots, commas or underscores with spaces
-  .replace(/[^\w- ]/gi, '') // remove all non-alphanumeric chars
-  .trim();
 };
 
 const url = process.env.ENDPOINT
