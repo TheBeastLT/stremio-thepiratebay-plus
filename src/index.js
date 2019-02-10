@@ -1,6 +1,6 @@
+const _ = require('lodash');
 const addonSDK = require('stremio-addon-sdk');
 const videoExtensions = require('video-extensions');
-const _ = require('lodash');
 const {torrentSearch, torrentFiles} = require('./torrent');
 const {movieStream, seriesStream} = require('./streamInfo');
 const {getMetadata} = require('./metadata');
@@ -38,7 +38,8 @@ addon.defineStreamHandler(async function (args, callback) {
 });
 
 async function seriesStreamHandler(args, callback) {
-  const seriesInfo = await seriesInformation(args);
+  const seriesInfo = await seriesInformation(args).catch(err => {
+  });
 
   return Promise.all([
     torrentSearch(seriesInfo.imdb)
@@ -73,11 +74,13 @@ async function seriesStreamHandler(args, callback) {
 }
 
 async function movieStreamHandler(args, callback) {
+  const movieInfo = await movieInformation(args).catch(err => {
+  });
+
   return Promise.all([
     torrentSearch(args.id),
-    movieInformation(args)
-        .then(movieInfo => torrentSearch(movieInfo.title)
-            .then(torrents => filterMovieTitles(torrents, movieInfo)))
+    torrentSearch(movieInfo.title)
+        .then(torrents => filterMovieTitles(torrents, movieInfo))
   ])
       .then(results => _.uniqBy(_.flatten(results), 'magnetLink')
           .filter(torrent => torrent.seeders > 0)
@@ -94,7 +97,7 @@ async function movieStreamHandler(args, callback) {
 /*
  * Reads torrent files and tries to find series episodes matches.
  */
-const findEpisodes = (torrent, seriesInfo) => {
+async function findEpisodes(torrent, seriesInfo) {
   return torrentFiles(torrent.magnetLink)
       .then(files => {
         let episodes = filterSeriesEpisodes(
@@ -118,12 +121,12 @@ const findEpisodes = (torrent, seriesInfo) => {
         console.log(`failed opening: ${torrent.name}:${torrent.seeders}`);
         return torrent;
       });
-};
+}
 
 /*
  * Construct series info based on imdb_id
  */
-const seriesInformation = async args => {
+async function seriesInformation(args) {
   try {
     const idInfo = args.id.split(':');
     const imdbId = idInfo[0];
@@ -136,7 +139,7 @@ const seriesInformation = async args => {
     const seriesTitle = escapeTitle(metadata.title);
 
     return {
-      imdb: idInfo[0],
+      imdb: imdbId,
       seriesTitle: seriesTitle,
       episodeTitle: `${seriesTitle} s${seasonString}e${episodeString}`,
       season: season,
@@ -145,22 +148,20 @@ const seriesInformation = async args => {
   } catch (e) {
     return new Error(e.message);
   }
-};
+}
 
 /*
  * Construct movie info based on imdb_id
  */
-const movieInformation = async args => {
-  try {
-    const data = await getMetadata(args.id, args.type);
-    return {
-      title: escapeTitle(data.title),
-      year: data.year
-    };
-  } catch (e) {
-    return new Error(e.message);
-  }
-};
+async function movieInformation(args) {
+  return getMetadata(args.id, args.type)
+      .then(metadata => {
+        return {
+          title: escapeTitle(metadata.title),
+          year: metadata.year
+        };
+      });
+}
 
 const url = process.env.ENDPOINT
     ? process.env.ENDPOINT + "/manifest.json"

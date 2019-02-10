@@ -1,3 +1,4 @@
+const _ = require('lodash');
 const imdb = require('imdb');
 const request = require('request');
 const cacheManager = require('cache-manager');
@@ -41,7 +42,14 @@ function _getMetadataCinemeta(imdbId, type) {
           if (body && body.meta && body.meta.name) {
             resolve({
               title: body.meta.name,
-              year: body.meta.year
+              year: body.meta.year,
+              episodeCount: body.meta.videos && _.chain(body.meta.videos)
+                  .countBy('season')
+                  .toPairs()
+                  .filter(pair => pair[0] !== '0')
+                  .sortBy(pair => parseInt(pair[0]))
+                  .map(pair => pair[1])
+                  .value()
             });
           } else {
             console.log(err || body);
