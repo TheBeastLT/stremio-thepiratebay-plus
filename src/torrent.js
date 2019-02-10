@@ -1,7 +1,32 @@
 const torrentStream = require('torrent-stream');
 const pirata = require("./pirata.js");
+const cacheManager = require('cache-manager');
+const mangodbStore = require('cache-manager-mongodb');
 
-module.exports.torrentFiles = magnetLink => {
+const KEY_PREFIX = 'streamio-ptb|torrent';
+const MONGO_URI = process.env.MONGODB_URI;
+const TORRENT_TTL = process.env.TORRENT_TTL || 6 * 60 * 60; // 6 hours
+const PROXY_LIST = process.env.PROXIES
+    ? process.env.PROXIES.split(",")
+    : ['https://pirateproxy.sh'];
+
+const cache = MONGO_URI
+    ? cacheManager.caching({
+      store: mangodbStore,
+      uri: MONGO_URI,
+      options: {
+        collection: 'cacheManager',
+        ttl: TORRENT_TTL
+      },
+      ttl: TORRENT_TTL,
+      ignoreCacheErrors: true
+    })
+    : cacheManager.caching({
+      store: 'memory',
+      ttl: TORRENT_TTL
+    });
+
+module.exports.torrentFiles = function (magnetLink) {
   return new Promise(function (resolve, rejected) {
     const engine = new torrentStream(magnetLink);
     engine.ready(() => {
@@ -23,14 +48,27 @@ module.exports.torrentFiles = magnetLink => {
   });
 };
 
-const proxyList = process.env.PROXIES
-    ? process.env.PROXIES.split(",")
-    : ['https://pirateproxy.sh'];
-module.exports.torrentSearch = (query, page = 0) => {
+module.exports.torrentSearch = function (query, page = 0) {
+  if (!query) {
+    return Promise.resolve([]);
+  }
+  query = query.substring(0, 60);
+  const key = `${KEY_PREFIX}:${query}`;
+
+  return cache.wrap(key, function () {
+    return pirataSearch(query)
+  })
+      .catch(err => {
+        console.log(`failed \"${query}\" query.`);
+        return [];
+      });
+};
+
+function pirataSearch(query, page = 0) {
   return pirata.search(
-      query && query.substring(0, 60),
+      query,
       {
-        proxyList: proxyList,
+        proxyList: PROXY_LIST,
         timeout: 3000,
         cat: pirata.categories.Video,
         page: page
@@ -40,8 +78,4 @@ module.exports.torrentSearch = (query, page = 0) => {
         console.log(`pirata: ${query}=${results.length}`);
         return results;
       })
-      .catch(err => {
-        console.log(`failed \"${query}\" query.`);
-        return [];
-      });
-};
+}

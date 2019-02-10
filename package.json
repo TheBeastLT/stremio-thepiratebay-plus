@@ -13,6 +13,8 @@
   "author": "TheBeastLT <pauliox@beyond.lt>",
   "license": "MIT",
   "dependencies": {
+    "cache-manager": "^2.9.0",
+    "cache-manager-mongodb": "git+https://github.com/dcolens/node-cache-manager-mongodb.git",
     "cheerio": "^0.22.0",
     "imdb": "^1.1.0",
     "lodash": "^4.17.5",
