@@ -11,6 +11,11 @@ const {
   filterSeriesEpisodes
 } = require('./filter');
 
+const URL = process.env.ENDPOINT
+  ? `${process.env.ENDPOINT}/manifest.json`
+  : 'https://localhost:7000/manifest.json';
+const EMPTY_OBJECT = {};
+
 const addon = new addonSDK({
   id: 'com.stremio.thepiratebay.plus',
   version: '1.0.0',
@@ -30,76 +35,69 @@ addon.defineStreamHandler((args, callback) => {
     return callback(null, { streams: [] });
   }
 
-  if (args.type === 'series') {
-    return cacheWrapStream(args.id, () => seriesStreamHandler(args))
-        .then((streams) => {
-          console.log('streams: ', streams.map((stream) => stream.title));
-          return callback(null, { streams });
-        })
-        .catch((error) => {
-          console.log(error);
-          return callback(new Error(error.message));
-        });
-  } else if (args.type === 'movie') {
-    return cacheWrapStream(args.id, () => movieStreamHandler(args))
-        .then((streams) => {
-          console.log('streams: ', streams.map((stream) => stream.title));
-          return callback(null, { streams });
-        })
-        .catch((error) => {
-          console.log(error);
-          return callback(new Error(error.message));
-        });
-  }
-  return callback(null, { streams: [] });
+  const handlers = {
+    series: () => seriesStreamHandler(args),
+    movie: () => movieStreamHandler(args),
+    fallback: () => []
+  };
+
+  return cacheWrapStream(args.id, handlers[args.type] || handlers.fallback)
+      .then((streams) => callback(null, { streams }))
+      .catch((error) => {
+        console.log(error);
+        return callback(new Error(error.message));
+      });
 });
 
-async function seriesStreamHandler(args, callback) {
-  const seriesInfo = await seriesMetadata(args).catch((error) => {
-    console.log(error);
-    return {};
-  });
+async function seriesStreamHandler(args) {
+  const seriesInfo = await seriesMetadata(args).catch(() => EMPTY_OBJECT);
 
   // Cache torrents from imdb and title queries, cause they can be used by other episodes queries.
   // No need to cache episode query torrent, since it's better to cache the constructed streams.
-  return Promise.all([
+  // @TODO add auto paging queries based on seeders in the last torrent on the page
+  // @TODO cache disjoin imdb and title caches to cache only unique torrents to save space
+  const results = await Promise.all([
     torrentSearch(seriesInfo.imdb, true)
         .then((torrents) => filterSeriesTitles(torrents, seriesInfo, true)),
     torrentSearch(seriesInfo.seriesTitle, true)
         .then((torrents) => filterSeriesTitles(torrents, seriesInfo)),
     torrentSearch(seriesInfo.episodeTitle)
         .then((torrents) => filterSeriesTitles(torrents, seriesInfo))
-  ])
-      .then((results) => _.uniqBy(_.flatten(results), 'magnetLink')
-          .filter((torrent) => torrent.seeders > 0)
-          .sort((a, b) => b.seeders - a.seeders)
-          .slice(0, 5))
-      .then((torrents) => {
-        console.log('found torrents: ', torrents.map((torrent) => `${torrent.name}:${torrent.seeders}`));
-        return Promise.all(torrents.map((torrent) => findEpisodes(torrent, seriesInfo)));
-      })
-      .then((torrents) => torrents
-          .filter((torrent) => torrent.episodes)
-          .map((torrent) => torrent.episodes
-              .map((episode) => seriesStream(torrent, episode)))
-          .reduce((a, b) => a.concat(b), [])
-          .filter((stream) => stream.infoHash));
+  ]);
+
+  const torrentsToOpen = _.uniqBy(_.flatten(results), 'magnetLink')
+      .filter((torrent) => torrent.seeders > 0)
+      .sort((a, b) => b.seeders - a.seeders)
+      .slice(0, 5)
+      .map((torrent) => findEpisodes(torrent, seriesInfo));
+  const torrents = await Promise.all(torrentsToOpen);
+  console.log('found torrents: ', torrents.map((torrent) => `${torrent.name}:${torrent.seeders}`));
+
+  const streams = torrents
+      .filter((torrent) => torrent.episodes)
+      .map((torrent) => torrent.episodes
+          .map((episode) => seriesStream(torrent, episode)))
+      .reduce((a, b) => a.concat(b), [])
+      .filter((stream) => stream.infoHash);
+  console.log('streams: ', streams.map((stream) => stream.title));
+  return streams;
 }
 
 async function movieStreamHandler(args) {
-  const movieInfo = await movieMetadata(args).catch(() => {});
+  const movieInfo = await movieMetadata(args).catch(() => EMPTY_OBJECT);
 
   // No need to cache torrent query results, since it's better to cache the constructed streams.
-  return Promise.all([
+  const results = await Promise.all([
     torrentSearch(args.id),
     torrentSearch(movieInfo.title)
         .then((torrents) => filterMovieTitles(torrents, movieInfo))
-  ])
-      .then((results) => _.uniqBy(_.flatten(results), 'magnetLink')
-          .filter((torrent) => torrent.seeders > 0)
-          .sort((a, b) => b.seeders - a.seeders)
-          .slice(0, 4)
-          .map((torrent) => movieStream(torrent)));
+  ]);
+
+  return _.uniqBy(_.flatten(results), 'magnetLink')
+      .filter((torrent) => torrent.seeders > 0)
+      .sort((a, b) => b.seeders - a.seeders)
+      .slice(0, 4)
+      .map((torrent) => movieStream(torrent));
 }
 
 /*
@@ -132,10 +130,6 @@ function findEpisodes(torrent, seriesInfo) {
       });
 }
 
-const url = process.env.ENDPOINT
-    ? `${process.env.ENDPOINT}/manifest.json`
-    : 'https://localhost:7000/manifest.json';
-
 addon.runHTTPWithOptions({ port: process.env.PORT || 7000 });
-addon.publishToWeb(url);
-addon.publishToCentral(url);
+addon.publishToWeb(URL);
+addon.publishToCentral(URL);

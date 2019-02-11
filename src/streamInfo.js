@@ -29,7 +29,7 @@ function seriesStream(torrent, episode) {
   const sameInfo = tInfo.season === eInfo.season && tInfo.episode === eInfo.episode;
   const title = joinDetailParts(
       [
-        joinDetailParts([torrent.name.replace(/[, ]+/, ' ')]),
+        joinDetailParts([torrent.name.replace(/[, ]+/g, ' ')]),
         joinDetailParts([!sameInfo && episode.name]),
         joinDetailParts([tInfo.resolution || eInfo.resolution, tInfo.source || eInfo.source], '📺 '),
         joinDetailParts([torrent.seeders], '👤 ')
