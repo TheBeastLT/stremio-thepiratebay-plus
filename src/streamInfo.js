@@ -2,7 +2,7 @@ const magnet = require('magnet-uri');
 const titleParser = require('parse-torrent-title');
 
 function movieStream(torrent) {
-  const {infoHash} = magnet.decode(torrent.magnetLink);
+  const { infoHash } = magnet.decode(torrent.magnetLink);
   const titleInfo = titleParser.parse(torrent.name);
   const title = joinDetailParts(
       [
@@ -23,7 +23,7 @@ function movieStream(torrent) {
 }
 
 function seriesStream(torrent, episode) {
-  const {infoHash} = magnet.decode(torrent.magnetLink);
+  const { infoHash } = magnet.decode(torrent.magnetLink);
   const tInfo = titleParser.parse(torrent.name);
   const eInfo = titleParser.parse(episode.name);
   const sameInfo = tInfo.season === eInfo.season && tInfo.episode === eInfo.episode;
@@ -48,8 +48,9 @@ function seriesStream(torrent, episode) {
 }
 
 function joinDetailParts(parts, prefix = '', delimiter = ' ') {
-  parts = parts.filter(part => part).join(delimiter);
-  return parts.length > 0 ? `${prefix}${parts}` : undefined;
+  const filtered = parts.filter((part) => part).join(delimiter);
+
+  return filtered.length > 0 ? `${prefix}${filtered}` : null;
 }
 
-module.exports = {movieStream, seriesStream};
+module.exports = { movieStream, seriesStream };

@@ -8,7 +8,8 @@
   },
   "scripts": {
     "start": "node ./src/index.js",
-    "dev": "nodemon ./src/index.js"
+    "dev": "nodemon ./src/index.js",
+    "lint": "eslint . --fix"
   },
   "author": "TheBeastLT <pauliox@beyond.lt>",
   "license": "MIT",
@@ -17,13 +18,19 @@
     "cache-manager-mongodb": "git+https://github.com/dcolens/node-cache-manager-mongodb.git",
     "cheerio": "^0.22.0",
     "imdb": "^1.1.0",
+    "is-video": "^1.0.1",
     "lodash": "^4.17.5",
     "magnet-uri": "^5.1.7",
     "name-to-imdb": "^2.2.0",
     "parse-torrent-title": "git+https://github.com/TheBeastLT/parse-torrent-title.git",
     "request": "^2.75.0",
     "stremio-addon-sdk": "^0.7.1",
-    "torrent-stream": "^1.1.0",
-    "video-extensions": "^1.1.0"
+    "torrent-stream": "^1.1.0"
+  },
+  "devDependencies": {
+    "eslint": "^5.13.0",
+    "eslint-config-eslint": "^5.0.1",
+    "eslint-config-google": "^0.12.0",
+    "eslint-plugin-node": "^8.0.1"
   }
 }
