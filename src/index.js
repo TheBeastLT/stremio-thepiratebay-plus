@@ -4,6 +4,7 @@ const isVideo = require('is-video');
 const { torrentSearch, torrentFiles } = require('./torrent');
 const { movieStream, seriesStream } = require('./streamInfo');
 const { movieMetadata, seriesMetadata } = require('./metadata');
+const { cacheWrapStream } = require('./cache');
 const {
   filterMovieTitles,
   filterSeriesTitles,
@@ -30,18 +31,41 @@ addon.defineStreamHandler((args, callback) => {
   }
 
   if (args.type === 'series') {
-    return seriesStreamHandler(args, callback).catch((error) => callback(error));
+    return cacheWrapStream(args.id, () => seriesStreamHandler(args))
+        .then((streams) => {
+          console.log('streams: ', streams.map((stream) => stream.title));
+          return callback(null, { streams });
+        })
+        .catch((error) => {
+          console.log(error);
+          return callback(new Error(error.message));
+        });
+  } else if (args.type === 'movie') {
+    return cacheWrapStream(args.id, () => movieStreamHandler(args))
+        .then((streams) => {
+          console.log('streams: ', streams.map((stream) => stream.title));
+          return callback(null, { streams });
+        })
+        .catch((error) => {
+          console.log(error);
+          return callback(new Error(error.message));
+        });
   }
-  return movieStreamHandler(args, callback).catch((error) => callback(error));
+  return callback(null, { streams: [] });
 });
 
 async function seriesStreamHandler(args, callback) {
-  const seriesInfo = await seriesMetadata(args).catch(() => {});
+  const seriesInfo = await seriesMetadata(args).catch((error) => {
+    console.log(error);
+    return {};
+  });
 
+  // Cache torrents from imdb and title queries, cause they can be used by other episodes queries.
+  // No need to cache episode query torrent, since it's better to cache the constructed streams.
   return Promise.all([
-    torrentSearch(seriesInfo.imdb)
+    torrentSearch(seriesInfo.imdb, true)
         .then((torrents) => filterSeriesTitles(torrents, seriesInfo, true)),
-    torrentSearch(seriesInfo.seriesTitle)
+    torrentSearch(seriesInfo.seriesTitle, true)
         .then((torrents) => filterSeriesTitles(torrents, seriesInfo)),
     torrentSearch(seriesInfo.episodeTitle)
         .then((torrents) => filterSeriesTitles(torrents, seriesInfo))
@@ -59,20 +83,13 @@ async function seriesStreamHandler(args, callback) {
           .map((torrent) => torrent.episodes
               .map((episode) => seriesStream(torrent, episode)))
           .reduce((a, b) => a.concat(b), [])
-          .filter((stream) => stream.infoHash))
-      .then((streams) => {
-        console.log('streams: ', streams.map((stream) => stream.title));
-        return callback(null, { streams });
-      })
-      .catch((error) => {
-        console.log(error);
-        return callback(new Error(error.message));
-      });
+          .filter((stream) => stream.infoHash));
 }
 
-async function movieStreamHandler(args, callback) {
+async function movieStreamHandler(args) {
   const movieInfo = await movieMetadata(args).catch(() => {});
 
+  // No need to cache torrent query results, since it's better to cache the constructed streams.
   return Promise.all([
     torrentSearch(args.id),
     torrentSearch(movieInfo.title)
@@ -82,12 +99,7 @@ async function movieStreamHandler(args, callback) {
           .filter((torrent) => torrent.seeders > 0)
           .sort((a, b) => b.seeders - a.seeders)
           .slice(0, 4)
-          .map((torrent) => movieStream(torrent)))
-      .then((streams) => callback(null, { streams }))
-      .catch((error) => {
-        console.log(error);
-        return callback(new Error(error.message));
-      });
+          .map((torrent) => movieStream(torrent)));
 }
 
 /*

@@ -1,19 +1,13 @@
 const _ = require('lodash');
 const imdb = require('imdb');
 const request = require('request');
-const cacheManager = require('cache-manager');
+const { cacheWrapMetadata } = require('./cache');
 const { escapeTitle } = require('./filter');
 
 const CINEMETA_URL = process.env.CINEMETA_URL || 'https://v3-cinemeta.strem.io';
-const KEY_PREFIX = 'streamio-ptb|metadata';
-const METADATA_TTL = process.env.METADATA_TTL || 2 * 24 * 60 * 60; // 2 days
-
-const cache = cacheManager.caching({ store: 'memory', ttl: METADATA_TTL });
 
 function getMetadata(imdbId, type) {
-  const key = `${KEY_PREFIX}:${imdbId}`;
-
-  return cache.wrap(key, () => getMetadataCinemeta(imdbId, type)
+  return cacheWrapMetadata(imdbId, () => getMetadataCinemeta(imdbId, type)
       .catch(() => getMetadataImdb(imdbId))); // fallback to imdb search
 }
 

@@ -1,30 +1,10 @@
 const torrentStream = require('torrent-stream');
-const cacheManager = require('cache-manager');
-const mangodbStore = require('cache-manager-mongodb');
 const pirata = require('./pirata.js');
+const { cacheWrapTorrent } = require('./cache');
 
-const KEY_PREFIX = 'streamio-ptb|torrent';
-const MONGO_URI = process.env.MONGODB_URI;
-const TORRENT_TTL = process.env.TORRENT_TTL || 6 * 60 * 60; // 6 hours
 const PROXY_LIST = process.env.PROXIES
     ? process.env.PROXIES.split(',')
     : ['https://pirateproxy.sh'];
-
-const cache = MONGO_URI
-    ? cacheManager.caching({
-      store: mangodbStore,
-      uri: MONGO_URI,
-      options: {
-        collection: 'cacheManager',
-        ttl: TORRENT_TTL
-      },
-      ttl: TORRENT_TTL,
-      ignoreCacheErrors: true
-    })
-    : cacheManager.caching({
-      store: 'memory',
-      ttl: TORRENT_TTL
-    });
 
 module.exports.torrentFiles = function(magnetLink) {
   return new Promise((resolve, rejected) => {
@@ -48,20 +28,21 @@ module.exports.torrentFiles = function(magnetLink) {
   });
 };
 
-module.exports.torrentSearch = function(query, page = 0) {
+module.exports.torrentSearch = function(query, useCache = false) {
   if (!query) {
     return Promise.resolve([]);
   }
-  query = query.substring(0, 60);
-  const key = `${KEY_PREFIX}:${query}`;
-
-  return cache.wrap(key, () => pirataSearch(query))
+  const keyword = query.substring(0, 60);
+  const search = () => pirataSearch(keyword)
       .catch(() => {
-        console.log(`failed "${query}" query.`);
+        console.log(`failed "${keyword}" query.`);
         return [];
       });
+
+  return useCache ? cacheWrapTorrent(keyword, search) : search();
 };
 
+// @TODO add auto re-query next page based on last torrent seeder count
 function pirataSearch(query, page = 0) {
   return pirata.search(
       query,
