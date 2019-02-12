@@ -54,12 +54,11 @@ async function seriesStreamHandler(args) {
 
   // Cache torrents from imdb and title queries, cause they can be used by other episodes queries.
   // No need to cache episode query torrent, since it's better to cache the constructed streams.
-  // @TODO add auto paging queries based on seeders in the last torrent on the page
-  // @TODO cache disjoin imdb and title caches to cache only unique torrents to save space
+  // @TODO when caching disjoin imdb and title results to cache only unique torrents to save space
   const results = await Promise.all([
-    torrentSearch(seriesInfo.imdb, true)
+    torrentSearch(seriesInfo.imdb, true, true)
         .then((torrents) => filterSeriesTitles(torrents, seriesInfo, true)),
-    torrentSearch(seriesInfo.seriesTitle, true)
+    torrentSearch(seriesInfo.seriesTitle, true, true)
         .then((torrents) => filterSeriesTitles(torrents, seriesInfo)),
     torrentSearch(seriesInfo.episodeTitle)
         .then((torrents) => filterSeriesTitles(torrents, seriesInfo))
