@@ -1,7 +1,7 @@
 const cheerio = require('cheerio');
 const request = require('request');
 
-const defaultProxies = ['https://pirateproxy.sh', 'https://pirateproxy.gdn'];
+const defaultProxies = ['https://pirateproxy.sh'];
 const defaultTimeout = 5000;
 
 const errors = {
@@ -9,7 +9,7 @@ const errors = {
   PARSER_ERROR: { code: 'PARSER_ERROR' }
 };
 
-module.exports.categories = {
+categories = {
   Audio: 100,
   Video: 200,
   Apps: 300,
@@ -17,7 +17,7 @@ module.exports.categories = {
   Porn: 500
 };
 
-module.exports.search = function(keyword, config = {}, retries = 2) {
+function search(keyword, config = {}, retries = 2) {
   if (!keyword || retries === 0) {
     return new Error(`Failed ${keyword} search`);
   }
@@ -27,7 +27,7 @@ module.exports.search = function(keyword, config = {}, retries = 2) {
       .map((proxyUrl) => singleRequest(keyword, proxyUrl, config)))
       .then((body) => parseBody(body))
       .catch(() => search(keyword, config, retries--));
-};
+}
 
 function singleRequest(keyword, url, config = {}) {
   const timeout = config.timeout || defaultTimeout;
@@ -40,13 +40,17 @@ function singleRequest(keyword, url, config = {}) {
     request.get(requestURL,
         { timeout },
         (err, res, body) => {
-          if (err || !body ||
-              body.includes('502: Bad gateway') ||
-              body.includes('403 Forbidden') ||
-              body.includes('Database maintenance') ||
-              body.includes('Origin DNS error') ||
-              !body.includes('<title>The Pirate Bay')) {
+          if (err || !body) {
             reject(err || errors.REQUEST_ERROR);
+          } else if (body.includes('Access Denied') && !body.includes('<title>The Pirate Bay')) {
+            console.log(`Access Denied: ${url}`);
+            reject(new Error(`Access Denied: ${url}`));
+          } else if (body.includes('502: Bad gateway') ||
+            body.includes('403 Forbidden') ||
+            body.includes('Database maintenance') ||
+            body.includes('Origin DNS error') ||
+            !body.includes('<title>The Pirate Bay')) {
+            reject(errors.REQUEST_ERROR);
           }
 
           resolve(body);
@@ -96,3 +100,5 @@ function raceFirstSuccessful(promises) {
       (val) => Promise.resolve(val)
   );
 }
+
+module.exports = { search, categories };

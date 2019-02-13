@@ -10,7 +10,7 @@ const MAX_PAGES_TO_EXTEND = process.env.MAX_PAGES_TO_EXTEND || 2;
 
 module.exports.torrentFiles = function(magnetLink) {
   return new Promise((resolve, rejected) => {
-    const engine = new torrentStream(magnetLink);
+    const engine = new torrentStream(magnetLink, { connections: 10 });
 
     engine.ready(() => {
       const files = engine.files
@@ -26,7 +26,7 @@ module.exports.torrentFiles = function(magnetLink) {
     setTimeout(() => {
       engine.destroy();
       rejected(new Error('No available connections for torrent!'));
-    }, 3000);
+    }, 5000);
   });
 };
 
@@ -39,13 +39,13 @@ module.exports.torrentSearch = function(query, useCache = false, extendSearch = 
       .then((results) => {
         console.log(`pirata: ${query}=${results.length}`);
         return results;
-      })
+      });
+
+  return (useCache ? cacheWrapTorrent(keyword, search) : search())
       .catch(() => {
         console.log(`failed "${keyword}" query.`);
         return [];
       });
-
-  return useCache ? cacheWrapTorrent(keyword, search) : search();
 };
 
 function pirataSearch(query, extendSearch = false, page = 0) {
