@@ -9,6 +9,7 @@ const { cacheWrapStream } = require('./cache');
 const {
   filterMovieTitles,
   canContainEpisode,
+  onlyPossibleEpisodes,
   containSingleEpisode,
   isCorrectEpisode
 } = require('./filter');
@@ -80,9 +81,9 @@ async function seriesStreamHandler(args) {
   const streams = torrents
       .filter((torrent) => torrent.episodes)
       .map((torrent) => torrent.episodes
-          .map((episode) => seriesStream(torrent, episode)))
+          .map((episode) => seriesStream(torrent, episode))
+          .slice(0, 3)) // just in case we flood
       .reduce((a, b) => a.concat(b), [])
-      .slice(0, 10)
       .filter((stream) => stream.infoHash);
   console.log('streams: ', streams.map((stream) => stream.title));
   return streams;
@@ -108,6 +109,7 @@ async function movieStreamHandler(args) {
 /*
  * Reads torrent files and tries to find series episodes matches.
  */
+// @TODO not thread safe if storing torrent info in memory
 function findEpisodes(torrent, seriesInfo) {
   if (containSingleEpisode(torrent, seriesInfo)) {
     // no need to open torrent containing just the correct episode
@@ -120,7 +122,7 @@ function findEpisodes(torrent, seriesInfo) {
   const absEpisode = seriesInfo.absoluteEpisode;
   return torrentFiles(torrent.magnetLink)
       .then((files) => {
-        let episodes = files
+        let episodes = onlyPossibleEpisodes(files, episode, absEpisode)
             .filter((file) => isVideo(file.name))
             .filter((file) => isCorrectEpisode(file, seriesInfo))
             .sort((a, b) => a.episode - b.episode);
@@ -149,8 +151,7 @@ function findEpisodes(torrent, seriesInfo) {
         torrent.episodes = episodes.length > 0 ? episodes : null;
         return torrent;
       })
-      .catch((error) => {
-        console.log(error);
+      .catch(() => {
         console.log(`failed opening: ${torrent.name}:${torrent.seeders}`);
         return torrent;
       });
