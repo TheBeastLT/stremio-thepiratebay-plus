@@ -71,6 +71,14 @@ function isCorrectEpisode(file, seriesInfo) {
   return false;
 }
 
+function onlyPossibleEpisodes(files, episode, absoluteEpisode) {
+  const episodeRegex = (`0${episode}`).slice(-2);
+  const absoluteEpisodeRegex = (`@@${absoluteEpisode}`).slice(-3).replace(/@/g, '0?');
+  const fullRegex = new RegExp(`(?:\\D|^)(${episodeRegex}|${absoluteEpisodeRegex})(?:\\D)`, 'i');
+
+  return files.filter((file) => fullRegex.test(file.name));
+}
+
 function filterMovieTitles(torrents, movieInfo) {
   const movieRegex = new RegExp(`\\b${movieInfo.title}\\b.*\\b${movieInfo.year}\\b`);
 
@@ -81,6 +89,7 @@ module.exports = {
   escapeTitle,
   filterMovieTitles,
   canContainEpisode,
+  onlyPossibleEpisodes,
   containSingleEpisode,
   isCorrectEpisode
 };
