@@ -17,6 +17,7 @@ const {
 const URL = process.env.ENDPOINT
   ? `${process.env.ENDPOINT}/manifest.json`
   : 'https://localhost:7000/manifest.json';
+const PORT = process.env.PORT || 7000;
 const EMPTY_OBJECT = {};
 
 const addon = new addonSDK({
@@ -157,6 +158,6 @@ function findEpisodes(torrent, seriesInfo) {
       });
 }
 
-addon.runHTTPWithOptions({ port: process.env.PORT || 7000 });
+addon.runHTTPWithOptions({ port: PORT });
 addon.publishToWeb(URL);
 addon.publishToCentral(URL);
