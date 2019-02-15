@@ -26,7 +26,7 @@ function seriesStream(torrent, episode) {
   const { infoHash } = magnet.decode(torrent.magnetLink);
   const tInfo = titleParser.parse(torrent.name);
   const eInfo = titleParser.parse(episode.name);
-  const sameInfo = tInfo.season === eInfo.season && tInfo.episode === eInfo.episode;
+  const sameInfo = tInfo.season === eInfo.season && tInfo.episode && eInfo.episode === tInfo.episode;
   const title = joinDetailParts(
       [
         joinDetailParts([torrent.name.replace(/[, ]+/g, ' ')]),
