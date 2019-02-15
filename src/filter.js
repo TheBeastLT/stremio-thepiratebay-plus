@@ -38,14 +38,16 @@ function filterSeriesTitles(torrents, seriesInfo, seasonInfoOnly = false) {
 }
 
 function filterSeriesEpisodes(files, season, episode) {
-  const seasonRegex = season < 10 ? `0?${season}` : `${season}`;
-  const episodeRegex = episode < 10 ? `0${episode}` : `${episode}`;
+  const seasonRegex = (`@${season}`).slice(-2).replace(/@/g, '0?');
+  const episodeRegex = (`0${episode}`).slice(-2);
+  const absoluteEpisodeRegex = (`@@${episode}`).slice(-3).replace(/@/g, '0?');
   const fileNameRegex = new RegExp( // match episode naming cases S01E01/1x01/S1.EP01/S01E01-E02..
-      `\\bs?${seasonRegex}(?:\\s?(?:[ex-]|ep|episode|[ex]p?\\s?\\d{2}(?!\\d))\\s?)+${episodeRegex}(?!\\d)`,
+      `((?:\\bs?${seasonRegex}(?:\\W?(?:[ex-]|ep|episode|[ex]p?\\s?\\d{2}(?!\\d))\\W?)+${episodeRegex}(?!\\d))` +
+    `|(?<!(?:s(?:eason)?[ .]?\\d{1,2}.*)|(?:season)|(?:\\d{1,2}x.*)|(?:\\bpart|\\bextra))` +
+    `(\\W|^)e?p?(?:isode)?[ .-]?(?:${season}${episodeRegex}\\b|${absoluteEpisodeRegex}\\b))`,
       'i'
   );
-
-  return files.filter((file) => fileNameRegex.test(escapeTitle(file.name)));
+  return files.filter((file) => fileNameRegex.test(file.name));
 }
 
 function filterMovieTitles(torrents, movieInfo) {
