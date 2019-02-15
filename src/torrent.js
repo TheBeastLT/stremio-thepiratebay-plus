@@ -8,6 +8,7 @@ const PROXY_LIST = process.env.PROXIES
 const MIN_SEEDS_TO_EXTEND = process.env.MIN_SEEDS_TO_EXTEND || 20;
 const MAX_PAGES_TO_EXTEND = process.env.MAX_PAGES_TO_EXTEND || 2;
 
+// @TODO this is the biggest bottleneck now explore options how to improve it. Maybe cache the files, but would take a lot of space
 module.exports.torrentFiles = function(magnetLink) {
   return new Promise((resolve, rejected) => {
     const engine = new torrentStream(magnetLink, { connections: 10 });
@@ -16,6 +17,7 @@ module.exports.torrentFiles = function(magnetLink) {
       const files = engine.files
           .map((file, fileId) => ({
             name: file.name,
+            path: file.path,
             index: fileId,
             size: file.length
           }));

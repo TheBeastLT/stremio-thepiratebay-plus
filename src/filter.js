@@ -1,3 +1,5 @@
+const parseTitle = require('parse-torrent-title');
+
 function escapeTitle(title, hyphenEscape = true) {
   return title.toLowerCase()
       .normalize('NFKD') // normalize non-ASCII characters
@@ -8,44 +10,65 @@ function escapeTitle(title, hyphenEscape = true) {
       .trim();
 }
 
-function filterSeriesTitles(torrents, seriesInfo, seasonInfoOnly = false) {
-  const seriesNameRegex = seasonInfoOnly ? '' : seriesInfo.seriesTitle.split(' ').join('[ -]+');
-  const seasonRegex = seriesInfo.season < 10 ? `0?${seriesInfo.season}` : `${seriesInfo.season}`;
-  const episodeRegex = seriesInfo.episode < 10 ? `0?${seriesInfo.episode}` : `${seriesInfo.episode}`;
-  const nameRegex = new RegExp(
-      `\\b${seriesNameRegex}\\b.*` + // match series title followed by any characters
-      '(' + // start capturing second condition
-      // first variation
-      '\\bseasons?\\b[^a-zA-Z]*' + // contains 'season'/'seasons' followed by non-alphabetic characters
-      '(' + // start capturing sub condition
-      `\\bs?${seasonRegex}\\b` + // followed by season number ex:'4'/'04'/'s04'/'1,2,3,4'/'1 2 3 4'
-      '|\\b[01]?\\d\\b[^a-zA-Z]*-[^a-zA-Z]*\\b[01]?\\d\\b' + // or followed by season range '1-4'/'01-04'/'1-12'
-      ')' + // finish capturing subcondition
-      // second variation
-      `|\\bs${seasonRegex}\\b(?!\\W*[ex]p?\\W*\\d{1,2})` + // or constrains only season identifier 's04'/'s12'
-      // third variation
-      '|\\bs[01]?\\d\\b[^a-zA-Z]*-[^a-zA-Z]*\\bs[01]?\\d\\b' + // or contains season range 's01 - s04'/'s01.-.s04'/'s1-s12'
-      // fourth variation
-      '|((\\bcomplete|all|full|mini|collection\\b).*(\\bseries|seasons|collection\\b))' + // or contains any two word variation
-      `|\\bs?${seasonRegex}\\W*[ex]p?\\W*${episodeRegex}\\b` + // or matches episode info
-      ')', // finish capturing second condition
-      'i'
-  );
+function canContainEpisode(torrent, seriesInfo, seasonInfoOnly = false) {
+  if (seriesInfo.seriesTitle.length > 50) {
+    // tpb title is limited to 60 symbols and may truncate season info
+    return seriesInfo.seriesTitle.includes(escapeTitle(torrent.name));
+  }
 
-  return torrents.filter((torrent) => (seriesInfo.seriesTitle.length > 50 // tpb title is limited to 60 symbols and may truncate season info
-        ? seriesInfo.seriesTitle.includes(escapeTitle(torrent.name, false))
-        : nameRegex.test(escapeTitle(torrent.name, false))));
+  const seriesTitleRegex = new RegExp(`\\b${seriesInfo.seriesTitle.split(' ').join('[ -]+')}\\b`, 'i');
+  const titleInfo = parseTitle.parse(torrent.name);
+  const matchesTitle = seasonInfoOnly || seriesTitleRegex.test(titleInfo.title);
+  const matchesSeason= titleInfo.seasons
+    && titleInfo.seasons.includes(seriesInfo.season)
+    || (!titleInfo.seasons && !!titleInfo.episodes);
+  const matchesEpisode = !titleInfo.episodes
+    || titleInfo.episodes.includes(seriesInfo.episode)
+    || titleInfo.episodes.includes(seriesInfo.absoluteEpisode);
+
+  // console.log(`title=${torrent.name}; season=${titleInfo.seasons}; episode=${titleInfo.episodes}`);
+
+  return matchesTitle && matchesEpisode && matchesSeason || titleInfo.complete;
 }
 
-function filterSeriesEpisodes(files, season, episode) {
-  const seasonRegex = season < 10 ? `0?${season}` : `${season}`;
-  const episodeRegex = episode < 10 ? `0${episode}` : `${episode}`;
-  const fileNameRegex = new RegExp( // match episode naming cases S01E01/1x01/S1.EP01/S01E01-E02..
-      `\\bs?${seasonRegex}(?:\\s?(?:[ex-]|ep|episode|[ex]p?\\s?\\d{2}(?!\\d))\\s?)+${episodeRegex}(?!\\d)`,
-      'i'
-  );
+function containSingleEpisode(torrent, seriesInfo) {
+  const titleInfo = parseTitle.parse(torrent.name);
 
-  return files.filter((file) => fileNameRegex.test(escapeTitle(file.name)));
+  return titleInfo.season === seriesInfo.season && titleInfo.episode === seriesInfo.episode;
+}
+
+function isCorrectEpisode(file, seriesInfo) {
+  const titleInfo = parseTitle.parse(file.name);
+  let pathSeason = null;
+  const season = titleInfo.season;
+  const episodes = titleInfo.episodes;
+
+  // the episode may be in a folder containing season number
+  if (!season && episodes && (episodes.includes(seriesInfo.episode) || episodes.includes(seriesInfo.absoluteEpisode))) {
+    const folders = file.path.split('/');
+    const pathInfo = parseTitle.parse(folders[folders.length - 2] || '');
+    pathSeason = pathInfo.season;
+  }
+
+  // console.log(`title=${file.name}; season=${season || pathSeason}; episode=${titleInfo.episodes}`);
+
+  if (!episodes) {
+    return false;
+  } else if ((season || pathSeason) === seriesInfo.season && episodes.includes(seriesInfo.episode)) {
+    file.season = season || pathSeason;
+    file.episode = seriesInfo.episode;
+    return true;
+  } else if (episodes.includes(seriesInfo.absoluteEpisode)
+    && (!season && !pathSeason || pathSeason === seriesInfo.season)) {
+    file.season = pathSeason;
+    file.episode = seriesInfo.absoluteEpisode;
+    return true;
+  } else if (seriesInfo.episode < 100 && episodes.includes(seriesInfo.season * 100 + seriesInfo.episode)) {
+    file.season = season;
+    file.episode = seriesInfo.season * 100 + seriesInfo.episode;
+    return true;
+  }
+  return false;
 }
 
 function filterMovieTitles(torrents, movieInfo) {
@@ -57,6 +80,7 @@ function filterMovieTitles(torrents, movieInfo) {
 module.exports = {
   escapeTitle,
   filterMovieTitles,
-  filterSeriesTitles,
-  filterSeriesEpisodes
+  canContainEpisode,
+  containSingleEpisode,
+  isCorrectEpisode
 };
