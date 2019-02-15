@@ -6,9 +6,11 @@ const TORRENT_KEY_PREFIX = `${GLOBAL_KEY_PREFIX}|torrent`;
 const STREAM_KEY_PREFIX = `${GLOBAL_KEY_PREFIX}|stream`;
 const METADATA_KEY_PREFIX = `${GLOBAL_KEY_PREFIX}|metadata`;
 
+const METADATA_TTL = process.env.METADATA_TTL || 2 * 24 * 60 * 60; // 2 days
 const TORRENT_TTL = process.env.TORRENT_TTL || 6 * 60 * 60; // 6 hours
 const STREAM_TTL = process.env.STREAM_TTL || 6 * 60 * 60; // 6 hours
-const METADATA_TTL = process.env.METADATA_TTL || 2 * 24 * 60 * 60; // 2 days
+const STREAM_EMPTY_TTL = process.env.STREAM_EMPTY_TTL || 15 * 60; // 15 minutes
+// When the streams are empty we want to cache it for less time in case of timeouts or failures
 
 const MONGO_URI = process.env.MONGODB_URI;
 const NO_CACHE = process.env.NO_CACHE || false;
@@ -44,16 +46,18 @@ function cacheWrap(key, method, options) {
   return cache.wrap(key, method, options);
 }
 
+function cacheWrapMetadata(id, method) {
+  return cacheWrap(`${METADATA_KEY_PREFIX}:${id}`, method, { ttl: METADATA_TTL });
+}
+
 function cacheWrapTorrent(id, method) {
   return cacheWrap(`${TORRENT_KEY_PREFIX}:${id}`, method, { ttl: TORRENT_TTL });
 }
 
 function cacheWrapStream(id, method) {
-  return cacheWrap(`${STREAM_KEY_PREFIX}:${id}`, method, { ttl: STREAM_TTL });
-}
-
-function cacheWrapMetadata(id, method) {
-  return cacheWrap(`${METADATA_KEY_PREFIX}:${id}`, method, { ttl: METADATA_TTL });
+  return cacheWrap(`${STREAM_KEY_PREFIX}:${id}`, method, {
+    ttl: (streams) => streams.length ? STREAM_TTL : STREAM_EMPTY_TTL
+  });
 }
 
 module.exports = { cacheWrapTorrent, cacheWrapStream, cacheWrapMetadata };
