@@ -120,7 +120,7 @@ function findEpisodes(torrent, seriesInfo) {
   const season = seriesInfo.season;
   const episode = seriesInfo.episode;
   const absEpisode = seriesInfo.absoluteEpisode;
-  return torrentFiles(torrent.magnetLink)
+  return torrentFiles(torrent)
       .then((files) => {
         let episodes = onlyPossibleEpisodes(files, episode, absEpisode)
             .filter((file) => isVideo(file.name))

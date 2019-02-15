@@ -9,9 +9,9 @@ const MIN_SEEDS_TO_EXTEND = process.env.MIN_SEEDS_TO_EXTEND || 20;
 const MAX_PAGES_TO_EXTEND = process.env.MAX_PAGES_TO_EXTEND || 2;
 
 // @TODO this is the biggest bottleneck now explore options how to improve it. Maybe cache the files, but would take a lot of space
-module.exports.torrentFiles = function(magnetLink) {
+module.exports.torrentFiles = function(torrent) {
   return new Promise((resolve, rejected) => {
-    const engine = new torrentStream(magnetLink, { connections: 250 });
+    const engine = new torrentStream(torrent.magnetLink, { connections: 250 });
 
     engine.ready(() => {
       const files = engine.files
@@ -28,9 +28,25 @@ module.exports.torrentFiles = function(magnetLink) {
     setTimeout(() => {
       engine.destroy();
       rejected(new Error('No available connections for torrent!'));
-    }, 3000);
+    }, dynamicTimeout(torrent));
   });
 };
+
+function dynamicTimeout(torrent) {
+  if (torrent.seeders < 10) {
+    return 3000;
+  } else if (torrent.seeders < 20) {
+    return 4000;
+  } else if (torrent.seeders < 30) {
+    return 5000;
+  } else if (torrent.seeders < 50) {
+    return 7000;
+  } else if (torrent.seeders < 100) {
+    return 10000;
+  } else {
+    return 15000;
+  }
+}
 
 module.exports.torrentSearch = function(query, useCache = false, extendSearch = false) {
   if (!query) {
