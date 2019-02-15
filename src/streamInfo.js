@@ -39,7 +39,7 @@ function seriesStream(torrent, episode) {
   );
 
   return {
-    name: 'TPB',
+    name: 'TPB+',
     title: title,
     infoHash: infoHash,
     fileIdx: episode && episode.index,

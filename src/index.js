@@ -33,8 +33,8 @@ const addon = new addonSDK({
   contactEmail: 'pauliox@beyond.lt'
 });
 const limiter = new Bottleneck({
-  maxConcurrent: 5,
-  highWater: 20,
+  maxConcurrent: process.env.LIMIT_MAX_CONCURRENT || 5,
+  highWater: process.env.LIMIT_QUEUE_SIZE || 30,
   strategy: Bottleneck.strategy.OVERFLOW
 });
 
