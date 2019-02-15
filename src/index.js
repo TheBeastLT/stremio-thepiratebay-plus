@@ -1,4 +1,5 @@
 const _ = require('lodash');
+const Bottleneck = require('bottleneck');
 const addonSDK = require('stremio-addon-sdk');
 const isVideo = require('is-video');
 const { torrentSearch, torrentFiles } = require('./torrent');
@@ -30,6 +31,11 @@ const addon = new addonSDK({
   logo: 'https://cdn.freebiesupply.com/logos/large/2x/the-pirate-bay-logo-png-transparent.png',
   contactEmail: 'pauliox@beyond.lt'
 });
+const limiter = new Bottleneck({
+  maxConcurrent: 5,
+  highWater: 20,
+  strategy: Bottleneck.strategy.OVERFLOW
+});
 
 addon.defineStreamHandler((args, callback) => {
   if (!args.id.match(/tt\d+/i)) {
@@ -42,7 +48,7 @@ addon.defineStreamHandler((args, callback) => {
     fallback: () => []
   };
 
-  return cacheWrapStream(args.id, handlers[args.type] || handlers.fallback)
+  return limiter.schedule(() => cacheWrapStream(args.id, handlers[args.type] || handlers.fallback))
       .then((streams) => callback(null, { streams }))
       .catch((error) => {
         console.log(error);
