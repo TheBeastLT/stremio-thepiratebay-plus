@@ -14,12 +14,13 @@ function getMetadata(imdbId, type) {
 function getMetadataImdb(imdbId) {
   return new Promise(((resolve, rejected) => {
     imdb(imdbId, (err, data) => {
-      if (data) {
+      if (data && data.title) {
         resolve({
           title: escapeTitle(data.title),
           year: data.year
         });
       } else {
+        console.log(`failed imdb query: ${err || 'Unknown error'}`);
         rejected(err || new Error('failed imdb query'));
       }
     });
@@ -31,7 +32,7 @@ function getMetadataCinemeta(imdbId, type) {
     request(
         `${CINEMETA_URL}/meta/${type}/${imdbId}.json`,
         (err, res, body) => {
-          const data = JSON.parse(body);
+          const data = body.includes('<!DOCTYPE html>') ? null : JSON.parse( body);
           if (data && data.meta && data.meta.name) {
             resolve({
               title: escapeTitle(data.meta.name),
@@ -45,7 +46,7 @@ function getMetadataCinemeta(imdbId, type) {
                   .value()
             });
           } else {
-            console.log(err);
+            console.log(`failed cinemeta query: ${err || 'Empty Body'}`);
             rejected(err || new Error('failed cinemeta query'));
           }
         }

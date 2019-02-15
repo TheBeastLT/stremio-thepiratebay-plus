@@ -52,7 +52,7 @@ addon.defineStreamHandler((args, callback) => {
   return limiter.schedule(() => cacheWrapStream(args.id, handlers[args.type] || handlers.fallback))
       .then((streams) => callback(null, { streams }))
       .catch((error) => {
-        console.log(error);
+        console.log(`Failed request ${args.id}: ${error}`);
         return callback(new Error(error.message));
       });
 });
