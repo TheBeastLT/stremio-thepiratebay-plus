@@ -1,7 +1,6 @@
 const _ = require('lodash');
 const Bottleneck = require('bottleneck');
 const addonSDK = require('stremio-addon-sdk');
-const isVideo = require('is-video');
 const { torrentSearch, torrentFiles } = require('./torrent');
 const { movieStream, seriesStream } = require('./streamInfo');
 const { movieMetadata, seriesMetadata } = require('./metadata');
@@ -124,7 +123,20 @@ function findEpisodes(torrent, seriesInfo) {
   return torrentFiles(torrent)
       .then((files) => {
         let episodes = onlyPossibleEpisodes(files, episode, absEpisode)
-            .filter((file) => isVideo(file.name))
+            .map((file) => {
+              if (typeof file == 'string') {
+                return {
+                  name: file.replace(/.+\/|^\d+@@/, ''),
+                  path: file.replace(/^\d+@@/, ''),
+                  index: parseInt(file.match(/^(\d+)@@/)[1])
+                };
+              }
+              return {
+                name: file.path.replace(/.+\//, ''),
+                path: file.path,
+                index: file.index
+              };
+            })
             .filter((file) => isCorrectEpisode(file, seriesInfo))
             .sort((a, b) => a.episode - b.episode);
 

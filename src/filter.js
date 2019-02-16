@@ -71,12 +71,14 @@ function isCorrectEpisode(file, seriesInfo) {
   return false;
 }
 
+// prune out files not containing episode number in them
+// so that we dont explode them to properties unnecessarily later on.
 function onlyPossibleEpisodes(files, episode, absoluteEpisode) {
-  const episodeRegex = (`0${episode}`).slice(-2);
+  const episodeRegex = (`@${episode}`).slice(-2).replace(/@/g, '0?');
   const absoluteEpisodeRegex = (`@@${absoluteEpisode}`).slice(-3).replace(/@/g, '0?');
-  const fullRegex = new RegExp(`(?:\\D|^)(${episodeRegex}|${absoluteEpisodeRegex})(?:\\D)`, 'i');
+  const fullRegex = new RegExp(`(?:\\D|^)(${episodeRegex}|${absoluteEpisodeRegex})(?:\\D)`);
 
-  return files.filter((file) => fullRegex.test(file.name));
+  return files.filter((file) => fullRegex.test((file.path || file).replace(/.+\/|^\d+@@/, '')));
 }
 
 function filterMovieTitles(torrents, movieInfo) {

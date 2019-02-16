@@ -1,26 +1,26 @@
 const torrentStream = require('torrent-stream');
+const isVideo = require('is-video');
+const magnet = require('magnet-uri');
 const pirata = require('./pirata.js');
-const { cacheWrapTorrent } = require('./cache');
+const { cacheWrapTorrent, cacheWrapTorrentFiles } = require('./cache');
 
 const PROXY_LIST = process.env.PROXIES
     ? process.env.PROXIES.split(',')
     : ['https://pirateproxy.sh'];
 const MIN_SEEDS_TO_EXTEND = process.env.MIN_SEEDS_TO_EXTEND || 20;
 const MAX_PAGES_TO_EXTEND = process.env.MAX_PAGES_TO_EXTEND || 2;
+const MAX_PEER_CONNECTIONS = process.env.MAX_PEER_CONNECTIONS || 20;
 
-// @TODO this is the biggest bottleneck now explore options how to improve it. Maybe cache the files, but would take a lot of space
+// @TODO this is the biggest bottleneck now, explore options how to improve it.
 module.exports.torrentFiles = function(torrent) {
-  return new Promise((resolve, rejected) => {
-    const engine = new torrentStream(torrent.magnetLink, { connections: 250 });
+  const { infoHash } = magnet.decode(torrent.magnetLink);
+  return cacheWrapTorrentFiles(infoHash, () => new Promise((resolve, rejected) => {
+    const engine = new torrentStream(torrent.magnetLink, { connections: MAX_PEER_CONNECTIONS });
 
     engine.ready(() => {
       const files = engine.files
-          .map((file, fileId) => ({
-            name: file.name,
-            path: file.path,
-            index: fileId,
-            size: file.length
-          }));
+          .map((file, fileId) => `${fileId}@@${file.path.replace(/^[^\/]+\//, '')}`)
+          .filter((file) => isVideo(file));
 
       engine.destroy();
       resolve(files);
@@ -29,11 +29,13 @@ module.exports.torrentFiles = function(torrent) {
       engine.destroy();
       rejected(new Error('No available connections for torrent!'));
     }, dynamicTimeout(torrent));
-  });
+  }));
 };
 
 function dynamicTimeout(torrent) {
-  if (torrent.seeders < 10) {
+  if (torrent.seeders < 5) {
+    return 2000;
+  } else if (torrent.seeders < 10) {
     return 3000;
   } else if (torrent.seeders < 20) {
     return 4000;

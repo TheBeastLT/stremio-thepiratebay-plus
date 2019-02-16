@@ -3,13 +3,15 @@ const mangodbStore = require('cache-manager-mongodb');
 
 const GLOBAL_KEY_PREFIX = 'stremio-tpb';
 const TORRENT_KEY_PREFIX = `${GLOBAL_KEY_PREFIX}|torrent`;
+const TORRENT_FILES_KEY_PREFIX = `${GLOBAL_KEY_PREFIX}|files`;
 const STREAM_KEY_PREFIX = `${GLOBAL_KEY_PREFIX}|stream`;
 const METADATA_KEY_PREFIX = `${GLOBAL_KEY_PREFIX}|metadata`;
 
 const METADATA_TTL = process.env.METADATA_TTL || 2 * 24 * 60 * 60; // 2 days
-const TORRENT_TTL = process.env.TORRENT_TTL || 6 * 60 * 60; // 6 hours
+const TORRENT_TTL = process.env.TORRENT_TTL || 12 * 60 * 60; // 12 hours
+const TORRENT_FILES_TTL = process.env.TORRENT_FILES_TTL || 24 * 60 * 60; // 24 hours
 const STREAM_TTL = process.env.STREAM_TTL || 6 * 60 * 60; // 6 hours
-const STREAM_EMPTY_TTL = process.env.STREAM_EMPTY_TTL || 15 * 60; // 15 minutes
+const STREAM_EMPTY_TTL = process.env.STREAM_EMPTY_TTL || 30 * 60; // 30 minutes
 // When the streams are empty we want to cache it for less time in case of timeouts or failures
 
 const MONGO_URI = process.env.MONGODB_URI;
@@ -54,11 +56,15 @@ function cacheWrapTorrent(id, method) {
   return cacheWrap(`${TORRENT_KEY_PREFIX}:${id}`, method, { ttl: TORRENT_TTL });
 }
 
+function cacheWrapTorrentFiles(id, method) {
+  return cacheWrap(`${TORRENT_FILES_KEY_PREFIX}:${id}`, method, { ttl: TORRENT_FILES_TTL });
+}
+
 function cacheWrapStream(id, method) {
   return cacheWrap(`${STREAM_KEY_PREFIX}:${id}`, method, {
     ttl: (streams) => streams.length ? STREAM_TTL : STREAM_EMPTY_TTL
   });
 }
 
-module.exports = { cacheWrapTorrent, cacheWrapStream, cacheWrapMetadata };
+module.exports = { cacheWrapTorrent, cacheWrapTorrentFiles, cacheWrapStream, cacheWrapMetadata };
 

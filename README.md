@@ -34,6 +34,7 @@ Available environment parameters to configure:
  - `MONGO_URI` - mongoDB URI used for the cache. If no URI is specified a in memory cache will be used; **default** null
  - `NO_CACHE` - flag indicating whether to disable the cache or not; **default** false
  - `METADATA_TTL` - time in seconds how long the title metadata will be cached; **default** 2 * 24 * 60 * 60 // 2 days
- - `TORRENT_TTL` - time in seconds how long torrent search results will be cached. Applicable to series torrent results; **default** 6 * 60 * 60; // 6 hours
+ - `TORRENT_TTL` - time in seconds how long torrent search results will be cached. Applicable to series torrent results; **default** 12 * 60 * 60; // 12 hours
+ - `TORRENT_TTL` - time in seconds how long opened torrent files info will be cached. Applicable to series torrents; **default** 24 * 60 * 60; // 24 hours
  - `STREAM_TTL` - time in seconds how long the processed streams will be cached. Applicable to end results for movies and individual episodes; **default** 6 * 60 * 60; // 6 hours
- - `STREAM_EMPTY_TTL` - time in seconds how long empty stream results will be cached. We want to cache empty results for less time since they could be empty because of timeouts/errors; **default** 15 * 60; // 15 minutes
+ - `STREAM_EMPTY_TTL` - time in seconds how long empty stream results will be cached. We want to cache empty results for less time since they could be empty because of timeouts/errors; **default** 30 * 60; // 30 minutes
