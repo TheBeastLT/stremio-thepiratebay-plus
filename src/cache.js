@@ -66,5 +66,14 @@ function cacheWrapStream(id, method) {
   });
 }
 
-module.exports = { cacheWrapTorrent, cacheWrapTorrentFiles, cacheWrapStream, cacheWrapMetadata };
+function updateMetadata(id, updateFunction) {
+  if (cache) {
+    const key = `${METADATA_KEY_PREFIX}:${id}`;
+    cache.get(key)
+        .then((metadata) => updateFunction(metadata))
+        .then((metadata) => cache.set(key, metadata, { ttl: METADATA_TTL }));
+  }
+}
+
+module.exports = { cacheWrapTorrent, cacheWrapTorrentFiles, cacheWrapStream, cacheWrapMetadata, updateMetadata };
 

@@ -10,15 +10,22 @@ function escapeTitle(title, hyphenEscape = true) {
       .trim();
 }
 
+function mostCommonTitle(torrents) {
+  return torrents
+      .map((torrent) => parseTitle.parse(torrent.name))
+      .map((properties) => escapeTitle(properties.title))
+      .reduce((a, b, i, arr)=> arr.filter((v) => v === a).length >= arr.filter((v) => v === b).length ? a : b, null);
+}
+
 function canContainEpisode(torrent, seriesInfo, seasonInfoOnly = false) {
-  if (seriesInfo.seriesTitle.length > 50) {
+  if (seriesInfo.title.length > 50) {
     // tpb title is limited to 60 symbols and may truncate season info
-    return seriesInfo.seriesTitle.includes(escapeTitle(torrent.name));
+    return seriesInfo.title.includes(escapeTitle(torrent.name));
   }
 
-  const seriesTitleRegex = new RegExp(`\\b${seriesInfo.seriesTitle.split(' ').join('[ -]+')}\\b`, 'i');
+  const titleRegex = new RegExp(`\\b${seriesInfo.title}|${seriesInfo.communityTitle}\\b`, 'i');
   const titleInfo = parseTitle.parse(torrent.name);
-  const matchesTitle = seasonInfoOnly || seriesTitleRegex.test(titleInfo.title);
+  const matchesTitle = seasonInfoOnly || titleRegex.test(escapeTitle(titleInfo.title));
   const matchesSeason= titleInfo.seasons
     && titleInfo.seasons.includes(seriesInfo.season)
     || (!titleInfo.seasons && !!titleInfo.episodes);
@@ -91,6 +98,7 @@ function filterMovieTitles(torrents, movieInfo) {
 
 module.exports = {
   escapeTitle,
+  mostCommonTitle,
   filterMovieTitles,
   canContainEpisode,
   onlyPossibleEpisodes,

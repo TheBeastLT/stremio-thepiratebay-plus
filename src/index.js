@@ -3,9 +3,10 @@ const Bottleneck = require('bottleneck');
 const addonSDK = require('stremio-addon-sdk');
 const { torrentSearch, torrentFiles } = require('./torrent');
 const { movieStream, seriesStream } = require('./streamInfo');
-const { movieMetadata, seriesMetadata } = require('./metadata');
+const { movieMetadata, seriesMetadata, addCommunityTitle } = require('./metadata');
 const { cacheWrapStream } = require('./cache');
 const {
+  mostCommonTitle,
   filterMovieTitles,
   canContainEpisode,
   onlyPossibleEpisodes,
@@ -65,9 +66,19 @@ async function seriesStreamHandler(args) {
   // @TODO when caching disjoin imdb and title results to cache only unique torrents to save space
   const results = await Promise.all([
     torrentSearch(seriesInfo.imdb, true, true),
-    torrentSearch(seriesInfo.seriesTitle, true, true),
+    torrentSearch(seriesInfo.title, true, true),
+    torrentSearch(seriesInfo.communityTitle, true, true),
     torrentSearch(seriesInfo.episodeTitle)
   ]);
+
+  if (!seriesInfo.communityTitle) {
+    const communityTitle = mostCommonTitle(results[0]);
+    if (communityTitle && communityTitle !== seriesInfo.title) {
+      console.log(`found communityTitle=${communityTitle};`);
+      seriesInfo.communityTitle = communityTitle;
+      addCommunityTitle(seriesInfo.imdb, communityTitle);
+    }
+  }
 
   const torrentsToOpen = _.uniqBy(_.flatten(results), 'magnetLink')
       .filter((torrent) => torrent.seeders > 0)

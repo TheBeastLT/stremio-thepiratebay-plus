@@ -1,7 +1,7 @@
 const _ = require('lodash');
 const imdb = require('imdb');
 const request = require('request');
-const { cacheWrapMetadata } = require('./cache');
+const { cacheWrapMetadata, updateMetadata } = require('./cache');
 const { escapeTitle } = require('./filter');
 
 const CINEMETA_URL = process.env.CINEMETA_URL || 'https://v3-cinemeta.strem.io';
@@ -54,6 +54,13 @@ function getMetadataCinemeta(imdbId, type) {
   }));
 }
 
+async function addCommunityTitle(imdbId, communityTitle) {
+  updateMetadata(imdbId, (metadata) => {
+    metadata.communityTitle = communityTitle;
+    return metadata;
+  });
+}
+
 async function seriesMetadata(args) {
   const idInfo = args.id.split(':');
   const imdbId = idInfo[0];
@@ -67,7 +74,8 @@ async function seriesMetadata(args) {
 
   return {
     imdb: imdbId,
-    seriesTitle: metadata.title,
+    title: metadata.title,
+    communityTitle: metadata.communityTitle,
     episodeTitle: `${metadata.title} s${seasonString}e${episodeString}`,
     season,
     episode,
@@ -86,4 +94,4 @@ async function movieMetadata(args) {
   };
 }
 
-module.exports = { movieMetadata, seriesMetadata };
+module.exports = { movieMetadata, seriesMetadata, addCommunityTitle };
