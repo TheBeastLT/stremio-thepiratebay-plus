@@ -137,7 +137,7 @@ function findEpisodes(torrent, seriesInfo) {
                 index: file.index
               };
             })
-            .filter((file) => isCorrectEpisode(file, seriesInfo))
+            .filter((file) => isCorrectEpisode(torrent, file, seriesInfo))
             .sort((a, b) => a.episode - b.episode);
 
         // try to prune out extras/samples

@@ -37,7 +37,7 @@ function containSingleEpisode(torrent, seriesInfo) {
   return titleInfo.season === seriesInfo.season && titleInfo.episode === seriesInfo.episode;
 }
 
-function isCorrectEpisode(file, seriesInfo) {
+function isCorrectEpisode(torrent, file, seriesInfo) {
   const titleInfo = parseTitle.parse(file.name);
   let pathSeason = null;
   const season = titleInfo.season;
@@ -46,11 +46,11 @@ function isCorrectEpisode(file, seriesInfo) {
   // the episode may be in a folder containing season number
   if (!season && episodes && (episodes.includes(seriesInfo.episode) || episodes.includes(seriesInfo.absoluteEpisode))) {
     const folders = file.path.split('/');
-    const pathInfo = parseTitle.parse(folders[folders.length - 2] || '');
+    const pathInfo = parseTitle.parse(folders[folders.length - 2] || torrent.name);
     pathSeason = pathInfo.season;
   }
 
-  // console.log(`title=${file.name}; season=${season || pathSeason}; episode=${titleInfo.episodes}`);
+  // console.log(`title=${file.path}; season=${season || pathSeason}; episode=${titleInfo.episodes}`);
 
   if (!episodes) {
     return false;
@@ -59,7 +59,8 @@ function isCorrectEpisode(file, seriesInfo) {
     file.episode = seriesInfo.episode;
     return true;
   } else if (episodes.includes(seriesInfo.absoluteEpisode)
-    && (!season && !pathSeason || pathSeason === seriesInfo.season)) {
+    && ((!season && !pathSeason || pathSeason === seriesInfo.season)
+    || seriesInfo.absoluteEpisode > seriesInfo.episodesInSeason)) {
     file.season = pathSeason;
     file.episode = seriesInfo.absoluteEpisode;
     return true;
