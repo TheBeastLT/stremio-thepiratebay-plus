@@ -122,7 +122,7 @@ function findEpisodes(torrent, seriesInfo) {
   const absEpisode = seriesInfo.absoluteEpisode;
   return torrentFiles(torrent)
       .then((files) => {
-        let episodes = onlyPossibleEpisodes(files, episode, absEpisode)
+        let episodes = onlyPossibleEpisodes(files, season, episode, absEpisode)
             .map((file) => {
               if (typeof file == 'string') {
                 return {
@@ -153,6 +153,11 @@ function findEpisodes(torrent, seriesInfo) {
           if (episodes.find((file) => file.season === season && file.episode === absEpisode)) {
             // Episode can follow absolute episode structure but be placed inside a season folder
             episodes = episodes.filter((file) => file.season === season && file.episode === absEpisode);
+          } else if (seriesInfo.totalEpisodes && episodes.find((file) => file.episode > seriesInfo.totalEpisodes)) {
+            // in case we have combined season and episode naming like 101
+            // we want to differentiate later seasons from absolute episodes
+            // Ex. 801 could be absolute episode 111 and this could be present in the torrent as S01E11
+            episodes = episodes.filter((file) => file.episode > seriesInfo.totalEpisodes);
           } else {
             // in case of absolute episode both 001 and 101 for S01E01 are valid
             // but if both of these cases are present we only want the 001

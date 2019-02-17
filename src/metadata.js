@@ -71,7 +71,8 @@ async function seriesMetadata(args) {
     episodeTitle: `${metadata.title} s${seasonString}e${episodeString}`,
     season,
     episode,
-    absoluteEpisode: hasEpisodeCount && metadata.episodeCount.slice(0, season - 1).reduce((a, b) => a + b, episode)
+    absoluteEpisode: hasEpisodeCount && metadata.episodeCount.slice(0, season - 1).reduce((a, b) => a + b, episode),
+    totalEpisodes: hasEpisodeCount && metadata.episodeCount.reduce((a, b) => a + b, 0)
   };
 }
 

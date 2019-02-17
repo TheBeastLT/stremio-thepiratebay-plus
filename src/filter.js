@@ -73,10 +73,11 @@ function isCorrectEpisode(file, seriesInfo) {
 
 // prune out files not containing episode number in them
 // so that we dont explode them to properties unnecessarily later on.
-function onlyPossibleEpisodes(files, episode, absoluteEpisode) {
+function onlyPossibleEpisodes(files, season, episode, absoluteEpisode) {
   const episodeRegex = (`@${episode}`).slice(-2).replace(/@/g, '0?');
   const absoluteEpisodeRegex = (`@@${absoluteEpisode}`).slice(-3).replace(/@/g, '0?');
-  const fullRegex = new RegExp(`(?:\\D|^)(${episodeRegex}|${absoluteEpisodeRegex})(?:\\D)`);
+  const seasonEpisodeRegex = `${season * 100 + episode}`;
+  const fullRegex = new RegExp(`(?:\\D|^)(${episodeRegex}|${absoluteEpisodeRegex}|${seasonEpisodeRegex})(?:\\D)`);
 
   return files.filter((file) => fullRegex.test((file.path || file).replace(/.+\/|^\d+@@/, '')));
 }
