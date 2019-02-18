@@ -19,14 +19,14 @@ categories = {
 
 function search(keyword, config = {}, retries = 2) {
   if (!keyword || retries === 0) {
-    return new Error(`Failed ${keyword} search`);
+    return Promise.reject(new Error(`Failed ${keyword} search`));
   }
   const proxyList = config.proxyList || defaultProxies;
 
   return raceFirstSuccessful(proxyList
       .map((proxyUrl) => singleRequest(keyword, proxyUrl, config)))
       .then((body) => parseBody(body))
-      .catch(() => search(keyword, config, retries--));
+      .catch(() => search(keyword, config, retries - 1));
 }
 
 function singleRequest(keyword, url, config = {}) {
