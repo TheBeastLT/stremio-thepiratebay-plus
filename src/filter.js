@@ -6,7 +6,7 @@ function escapeTitle(title, hyphenEscape = true) {
       .replace(/[\u0300-\u036F]/g, '')
       .replace(/&/g, 'and')
       .replace(hyphenEscape ? /[.,_+ -]+/g : /[.,_+ ]+/g, ' ') // replace dots, commas or underscores with spaces
-      .replace(/[^\w- ]/gi, '') // remove all non-alphanumeric chars
+      .replace(/[^\w- ()]/gi, '') // remove all non-alphanumeric chars
       .trim();
 }
 
@@ -23,7 +23,7 @@ function canContainEpisode(torrent, seriesInfo, seasonInfoOnly = false) {
     return seriesInfo.title.includes(escapeTitle(torrent.name));
   }
 
-  const titleRegex = new RegExp(`\\b${seriesInfo.title}|${seriesInfo.communityTitle}\\b`, 'i');
+  const titleRegex = new RegExp(`(?:^|\\()(?:${seriesInfo.title}|${seriesInfo.communityTitle})`, 'i');
   const titleInfo = parseTitle.parse(torrent.name);
   const matchesTitle = seasonInfoOnly || titleRegex.test(escapeTitle(titleInfo.title));
   const matchesSeason= titleInfo.seasons
@@ -35,7 +35,7 @@ function canContainEpisode(torrent, seriesInfo, seasonInfoOnly = false) {
 
   // console.log(`title=${torrent.name}; season=${titleInfo.seasons}; episode=${titleInfo.episodes}`);
 
-  return matchesTitle && matchesEpisode && matchesSeason || titleInfo.complete;
+  return matchesTitle && (matchesEpisode && matchesSeason || titleInfo.complete);
 }
 
 function containSingleEpisode(torrent, seriesInfo) {
