@@ -1,6 +1,8 @@
 const magnet = require('magnet-uri');
 const titleParser = require('parse-torrent-title');
 
+const SHORT_NAME = 'TPB+';
+
 function movieStream(torrent) {
   const { infoHash } = magnet.decode(torrent.magnetLink);
   const titleInfo = titleParser.parse(torrent.name);
@@ -15,7 +17,7 @@ function movieStream(torrent) {
   );
 
   return {
-    name: 'TPB',
+    name: SHORT_NAME,
     title: title,
     infoHash: infoHash,
     tag: titleInfo.resolution
@@ -39,7 +41,7 @@ function seriesStream(torrent, episode) {
   );
 
   return {
-    name: 'TPB+',
+    name: SHORT_NAME,
     title: title,
     infoHash: infoHash,
     fileIdx: episode && episode.index,
