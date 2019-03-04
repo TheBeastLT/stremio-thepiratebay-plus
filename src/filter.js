@@ -87,7 +87,7 @@ function onlyPossibleEpisodes(files, season, episode, absoluteEpisode) {
   const seasonEpisodeRegex = `${season * 100 + episode}`;
   const fullRegex = new RegExp(`(?:\\D|^)(${episodeRegex}|${absoluteEpisodeRegex}|${seasonEpisodeRegex})(?:\\D)`);
 
-  return files.filter((file) => fullRegex.test((file.path || file).replace(/.+\/|^\d+@@/, '')));
+  return files.filter((file) => fullRegex.test(file.replace(/.+\/|^\d+@@/, '')));
 }
 
 function filterMovieTitles(torrents, movieInfo) {

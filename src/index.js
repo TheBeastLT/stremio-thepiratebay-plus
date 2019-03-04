@@ -47,7 +47,7 @@ addon.defineStreamHandler((args, callback) => {
   const handlers = {
     series: () => seriesStreamHandler(args),
     movie: () => movieStreamHandler(args),
-    fallback: () => []
+    fallback: () => Promise.resolve([])
   };
 
   return limiter.schedule(() => cacheWrapStream(args.id, handlers[args.type] || handlers.fallback))
@@ -134,20 +134,11 @@ function findEpisodes(torrent, seriesInfo) {
   return torrentFiles(torrent)
       .then((files) => {
         let episodes = onlyPossibleEpisodes(files, season, episode, absEpisode)
-            .map((file) => {
-              if (typeof file == 'string') {
-                return {
-                  name: file.replace(/.+\/|^\d+@@/, ''),
-                  path: file.replace(/^\d+@@/, ''),
-                  index: parseInt(file.match(/^(\d+)@@/)[1])
-                };
-              }
-              return {
-                name: file.path.replace(/.+\//, ''),
-                path: file.path,
-                index: file.index
-              };
-            })
+            .map((file) => ({
+              name: file.replace(/.+\/|^\d+@@/, ''),
+              path: file.replace(/^\d+@@/, ''),
+              index: parseInt(file.match(/^(\d+)@@/)[1])
+            }))
             .filter((file) => isCorrectEpisode(torrent, file, seriesInfo))
             .sort((a, b) => a.episode - b.episode);
 
