@@ -1,6 +1,6 @@
 const _ = require('lodash');
 const Bottleneck = require('bottleneck');
-const addonSDK = require('stremio-addon-sdk');
+const { addonBuilder, serveHTTP, publishToCentral } = require('stremio-addon-sdk');
 const { torrentSearch, torrentFiles } = require('./torrent');
 const { movieStream, seriesStream } = require('./streamInfo');
 const { movieMetadata, seriesMetadata, addCommunityTitle } = require('./metadata');
@@ -14,23 +14,21 @@ const {
   isCorrectEpisode
 } = require('./filter');
 
-const URL = process.env.ENDPOINT
-  ? `${process.env.ENDPOINT}/manifest.json`
-  : 'https://localhost:7000/manifest.json';
 const PORT = process.env.PORT || 7000;
+const CACHE_MAX_AGE = process.env.CACHE_MAX_AGE || 3600;
 const EMPTY_OBJECT = {};
 
-const addon = new addonSDK({
+const builder = new addonBuilder({
   id: 'com.stremio.thepiratebay.plus',
   version: '1.0.0',
   name: 'ThePirateBay+',
-  description: 'Search for movies and series from ThePirateBay',
+  description: 'Search for movies, series and anime from ThePirateBay',
   catalogs: [],
   resources: ['stream'],
   types: ['movie', 'series'],
   idPrefixes: ['tt'],
-  background: 'http://wallpapercraze.com/images/wallpapers/thepiratebay-77708.jpeg',
-  logo: 'https://cdn.freebiesupply.com/logos/large/2x/the-pirate-bay-logo-png-transparent.png',
+  background: '/static/images/background.jpeg',
+  logo: '/static/images/logo.png',
   contactEmail: 'pauliox@beyond.lt'
 });
 const limiter = new Bottleneck({
@@ -39,9 +37,9 @@ const limiter = new Bottleneck({
   strategy: Bottleneck.strategy.OVERFLOW
 });
 
-addon.defineStreamHandler((args, callback) => {
+builder.defineStreamHandler((args) => {
   if (!args.id.match(/tt\d+/i)) {
-    return callback(null, { streams: [] });
+    return Promise.resolve({ streams: [] });
   }
 
   const handlers = {
@@ -51,10 +49,10 @@ addon.defineStreamHandler((args, callback) => {
   };
 
   return limiter.schedule(() => cacheWrapStream(args.id, handlers[args.type] || handlers.fallback))
-      .then((streams) => callback(null, { streams }))
+      .then((streams) => ({ streams }))
       .catch((error) => {
         console.log(`Failed request ${args.id}: ${error}`);
-        return callback(new Error(error.message));
+        throw error;
       });
 });
 
@@ -177,6 +175,5 @@ function findEpisodes(torrent, seriesInfo) {
       });
 }
 
-addon.runHTTPWithOptions({ port: PORT });
-addon.publishToWeb(URL);
-addon.publishToCentral(URL);
+serveHTTP(builder.getInterface(), { port: PORT, cacheMaxAge: CACHE_MAX_AGE, static: '/static' });
+publishToCentral(`${process.env.ENDPOINT}/manifest.json`);
