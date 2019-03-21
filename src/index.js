@@ -15,6 +15,7 @@ const {
 } = require('./filter');
 
 const PORT = process.env.PORT || 7000;
+const ENDPOINT = process.env.ENDPOINT || `http://localhost:${PORT}`;
 const CACHE_MAX_AGE = process.env.CACHE_MAX_AGE || 3600;
 const EMPTY_OBJECT = {};
 
@@ -27,8 +28,8 @@ const builder = new addonBuilder({
   resources: ['stream'],
   types: ['movie', 'series'],
   idPrefixes: ['tt'],
-  background: '/static/images/background.jpeg',
-  logo: '/static/images/logo.png',
+  background: `https://i.imgur.com/t8wVwcg.jpg`,
+  logo: `https://i.imgur.com/dPa2clS.png`,
   contactEmail: 'pauliox@beyond.lt'
 });
 const limiter = new Bottleneck({
@@ -176,4 +177,4 @@ function findEpisodes(torrent, seriesInfo) {
 }
 
 serveHTTP(builder.getInterface(), { port: PORT, cacheMaxAge: CACHE_MAX_AGE, static: '/static' });
-publishToCentral(`${process.env.ENDPOINT}/manifest.json`);
+publishToCentral(`${ENDPOINT}/manifest.json`);
