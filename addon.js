@@ -1,10 +1,10 @@
 const _ = require('lodash');
 const Bottleneck = require('bottleneck');
-const { addonBuilder, serveHTTP, publishToCentral } = require('stremio-addon-sdk');
-const { torrentSearch, torrentFiles } = require('./torrent');
-const { movieStream, seriesStream } = require('./streamInfo');
-const { movieMetadata, seriesMetadata, addCommunityTitle } = require('./metadata');
-const { cacheWrapStream } = require('./cache');
+const { addonBuilder } = require('stremio-addon-sdk');
+const { torrentSearch, torrentFiles } = require('./lib/torrent');
+const { movieStream, seriesStream } = require('./lib/streamInfo');
+const { movieMetadata, seriesMetadata, addCommunityTitle } = require('./lib/metadata');
+const { cacheWrapStream } = require('./lib/cache');
 const {
   mostCommonTitle,
   filterMovieTitles,
@@ -12,16 +12,15 @@ const {
   onlyPossibleEpisodes,
   containSingleEpisode,
   isCorrectEpisode
-} = require('./filter');
+} = require('./lib/filter');
 
-const PORT = process.env.PORT || 7000;
-const ENDPOINT = process.env.ENDPOINT || `http://localhost:${PORT}`;
-const CACHE_MAX_AGE = process.env.CACHE_MAX_AGE || 3600;
+const CACHE_MAX_AGE = process.env.CACHE_MAX_AGE || 86400; // 24 hours
+const CACHE_MAX_AGE_EMPTY = 14400; // 4 hours
 const EMPTY_OBJECT = {};
 
 const builder = new addonBuilder({
   id: 'com.stremio.thepiratebay.plus',
-  version: '1.1.0',
+  version: '1.2.0',
   name: 'ThePirateBay+',
   description: 'Search for movies, series and anime from ThePirateBay',
   catalogs: [],
@@ -30,8 +29,8 @@ const builder = new addonBuilder({
   idPrefixes: ['tt'],
   background: `https://i.imgur.com/t8wVwcg.jpg`,
   logo: `https://i.imgur.com/dPa2clS.png`,
-  contactEmail: 'pauliox@beyond.lt'
 });
+
 const limiter = new Bottleneck({
   maxConcurrent: process.env.LIMIT_MAX_CONCURRENT || 5,
   highWater: process.env.LIMIT_QUEUE_SIZE || 30,
@@ -50,7 +49,10 @@ builder.defineStreamHandler((args) => {
   };
 
   return limiter.schedule(() => cacheWrapStream(args.id, handlers[args.type] || handlers.fallback))
-      .then((streams) => ({ streams }))
+      .then((streams) => ({
+        streams: streams,
+        cacheMaxAge: streams.length ? CACHE_MAX_AGE : CACHE_MAX_AGE_EMPTY
+      }))
       .catch((error) => {
         console.log(`Failed request ${args.id}: ${error}`);
         throw error;
@@ -75,7 +77,7 @@ async function seriesStreamHandler(args) {
     if (communityTitle && communityTitle !== seriesInfo.title) {
       console.log(`found communityTitle=${communityTitle};`);
       seriesInfo.communityTitle = communityTitle;
-      addCommunityTitle(seriesInfo.imdb, communityTitle);
+      await addCommunityTitle(seriesInfo.imdb, communityTitle);
     }
   }
 
@@ -176,5 +178,4 @@ function findEpisodes(torrent, seriesInfo) {
       });
 }
 
-serveHTTP(builder.getInterface(), { port: PORT, cacheMaxAge: CACHE_MAX_AGE, static: '/static' });
-publishToCentral(`${ENDPOINT}/manifest.json`);
+module.exports = builder.getInterface();
