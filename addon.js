@@ -14,8 +14,8 @@ const {
   isCorrectEpisode
 } = require('./lib/filter');
 
-const CACHE_MAX_AGE = process.env.CACHE_MAX_AGE || 86400; // 24 hours
-const CACHE_MAX_AGE_EMPTY = 14400; // 4 hours
+const CACHE_MAX_AGE = process.env.CACHE_MAX_AGE || 24 * 60; // 24 hours in seconds
+const CACHE_MAX_AGE_EMPTY = 4 * 60; // 4 hours in seconds
 const EMPTY_OBJECT = {};
 
 const builder = new addonBuilder({
