@@ -85,7 +85,7 @@ async function seriesStreamHandler(args) {
     }
   }
 
-  const torrentsToOpen = _.uniqBy(_.flatten(results), 'magnetLink')
+  const torrentsToOpen = _.uniqBy(_.flatten(results), 'infoHash')
       .filter((torrent) => torrent.seeders > 0)
       .filter((torrent) => canContainEpisode(torrent, seriesInfo, results[0].includes(torrent))) // for imdb search results we want to check only season info
       .sort((a, b) => b.seeders - a.seeders)
@@ -115,7 +115,7 @@ async function movieStreamHandler(args) {
         .then((torrents) => filterMovieTitles(torrents, movieInfo))
   ]);
 
-  return _.uniqBy(_.flatten(results), 'magnetLink')
+  return _.uniqBy(_.flatten(results), 'infoHash')
       .filter((torrent) => torrent.seeders > 0)
       .sort((a, b) => b.seeders - a.seeders)
       .slice(0, 4)
