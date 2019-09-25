@@ -16,6 +16,8 @@ const {
 
 const CACHE_MAX_AGE = process.env.CACHE_MAX_AGE || 24 * 60; // 24 hours in seconds
 const CACHE_MAX_AGE_EMPTY = 4 * 60; // 4 hours in seconds
+const STALE_REVALIDATE_AGE = 4 * 60; // 4 hours
+const STALE_ERROR_AGE = 7 * 24 * 60; // 7 days
 const EMPTY_OBJECT = {};
 
 const builder = new addonBuilder({
@@ -51,7 +53,9 @@ builder.defineStreamHandler((args) => {
   return limiter.schedule(() => cacheWrapStream(args.id, handlers[args.type] || handlers.fallback))
       .then((streams) => ({
         streams: streams,
-        cacheMaxAge: streams.length ? CACHE_MAX_AGE : CACHE_MAX_AGE_EMPTY
+        cacheMaxAge: streams.length ? CACHE_MAX_AGE : CACHE_MAX_AGE_EMPTY,
+        staleRevalidate: STALE_REVALIDATE_AGE,
+        staleError: STALE_ERROR_AGE
       }))
       .catch((error) => {
         console.log(`Failed request ${args.id}: ${error}`);
