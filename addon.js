@@ -21,7 +21,7 @@ const EMPTY_OBJECT = {};
 
 const builder = new addonBuilder({
   id: 'com.stremio.thepiratebay.plus',
-  version: '1.2.0',
+  version: '1.3.0',
   name: 'ThePirateBay+',
   description: 'Search for movies, series and anime from ThePirateBay',
   catalogs: [],
