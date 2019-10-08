@@ -1,5 +1,4 @@
 const _ = require('lodash');
-const Bottleneck = require('bottleneck');
 const { addonBuilder } = require('stremio-addon-sdk');
 const { torrentSearch, torrentFiles } = require('./lib/torrent');
 const { movieStream, seriesStream } = require('./lib/streamInfo');
@@ -33,12 +32,6 @@ const builder = new addonBuilder({
   logo: `https://i.imgur.com/dPa2clS.png`,
 });
 
-const limiter = new Bottleneck({
-  maxConcurrent: process.env.LIMIT_MAX_CONCURRENT || 5,
-  highWater: process.env.LIMIT_QUEUE_SIZE || 30,
-  strategy: Bottleneck.strategy.OVERFLOW
-});
-
 builder.defineStreamHandler((args) => {
   if (!args.id.match(/tt\d+/i)) {
     return Promise.resolve({ streams: [] });
@@ -50,7 +43,7 @@ builder.defineStreamHandler((args) => {
     fallback: () => Promise.resolve([])
   };
 
-  return limiter.schedule(() => cacheWrapStream(args.id, handlers[args.type] || handlers.fallback))
+  return cacheWrapStream(args.id, handlers[args.type] || handlers.fallback)
       .then((streams) => ({
         streams: streams,
         cacheMaxAge: streams.length ? CACHE_MAX_AGE : CACHE_MAX_AGE_EMPTY,
