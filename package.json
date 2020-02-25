@@ -17,6 +17,7 @@
     "cache-manager": "^2.9.0",
     "cache-manager-mongodb": "^0.2.1",
     "cheerio": "^0.22.0",
+    "express-rate-limit": "^5.1.1",
     "imdb": "^1.1.0",
     "is-video": "^1.0.1",
     "lodash": "^4.17.15",
