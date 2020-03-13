@@ -22,6 +22,7 @@
     "is-video": "^1.0.1",
     "lodash": "^4.17.15",
     "magnet-uri": "^5.1.7",
+    "moment": "^2.24.0",
     "name-to-imdb": "^2.2.0",
     "parse-torrent-title": "git://github.com/TheBeastLT/parse-torrent-title.git#master",
     "request": "^2.75.0",

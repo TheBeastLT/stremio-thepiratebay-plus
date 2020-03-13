@@ -6,7 +6,8 @@ const router = getRouter(addonInterface);
 
 const limiter = rateLimit({
   windowMs: 10 * 1000, // 10 seconds
-  max: 10 // limit each IP to 10 requests per windowMs
+  max: 10, // limit each IP to 10 requests per windowMs
+  headers: false
 });
 
 router.use(limiter);
