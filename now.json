@@ -1,17 +1,11 @@
 {
   "version": 2,
-  "name": "stremio-thepiratebay-plus",
-  "builds": [
-    { "src": "static/**/*", "use": "@now/static" },
-    { "src": "**/*.js", "use": "@now/node" }
-  ],
   "routes": [
-    { "src": "/static/(.*)", "dest": "/static/$1" },
-    { "src": "/(.*)", "dest": "serverless.js" }
-  ],
-  "env": {
-    "MONGODB_URI": "@mongodb-uri",
-    "PROXIES": "@tpb-proxies"
-  }
+    {
+      "src": "/(.*)",
+      "status": 308,
+      "headers": { "Location": "https://thepiratebay-plus.strem.fun/$1" }
+    }
+  ]
 }
 
