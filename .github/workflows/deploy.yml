@@ -1,0 +1,42 @@
+name: Deploy
+
+on:
+  push:
+    branches: master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+
+    - name: Create Docker image
+      run: |
+        docker build -t thepiratebay-plus:latest .
+        docker save thepiratebay-plus:latest > tpb_latest.tar
+
+    - name: Upload Docker image
+      uses: appleboy/scp-action@master
+      with:
+        host: ${{ secrets.SSH_HOST }}
+        username: ${{ secrets.SSH_USERNAME }}
+        port: ${{ secrets.SSH_PORT }}
+        key: ${{ secrets.SSH_KEY }}
+        source: tpb_latest.tar
+        target: /tmp/docker
+        overwrite: true
+
+    - name: Deploy Docker image
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.SSH_HOST }}
+        username: ${{ secrets.SSH_USERNAME }}
+        port: ${{ secrets.SSH_PORT }}
+        key: ${{ secrets.SSH_KEY }}
+        script: |
+          docker load -i /tmp/docker/tpb_latest.tar
+          docker stop tpb-plus
+          docker rm tpb-plus
+          docker run -p 80:7000 -d --name tpb-plus --restart always -e PROXIES=${{ secrets.TPB_PROXIES }} thepiratebay-plus:latest
+          docker image prune -f
