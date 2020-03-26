@@ -3,8 +3,7 @@
   "routes": [
     {
       "src": "/(.*)",
-      "status": 308,
-      "headers": { "Location": "https://thepiratebay-plus.strem.fun/$1" }
+      "status": 404
     }
   ],
   "github": {
