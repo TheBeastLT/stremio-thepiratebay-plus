@@ -6,6 +6,9 @@
       "status": 308,
       "headers": { "Location": "https://thepiratebay-plus.strem.fun/$1" }
     }
-  ]
+  ],
+  "github": {
+    "silent": true
+  }
 }
 
