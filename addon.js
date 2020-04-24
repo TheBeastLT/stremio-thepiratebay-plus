@@ -1,4 +1,5 @@
 const _ = require('lodash');
+const Bottleneck = require('bottleneck');
 const { addonBuilder } = require('stremio-addon-sdk');
 const { torrentSearch, torrentFiles } = require('./lib/torrent');
 const { movieStream, seriesStream } = require('./lib/streamInfo');
@@ -32,6 +33,12 @@ const builder = new addonBuilder({
   logo: `https://i.imgur.com/dPa2clS.png`,
 });
 
+const limiter = new Bottleneck({
+  maxConcurrent: process.env.LIMIT_MAX_CONCURRENT || 10,
+  highWater: process.env.LIMIT_QUEUE_SIZE || 50,
+  strategy: Bottleneck.strategy.OVERFLOW
+});
+
 builder.defineStreamHandler((args) => {
   if (!args.id.match(/tt\d+/i)) {
     return Promise.resolve({ streams: [] });
@@ -40,10 +47,10 @@ builder.defineStreamHandler((args) => {
   const handlers = {
     series: () => seriesStreamHandler(args),
     movie: () => movieStreamHandler(args),
-    fallback: () => Promise.resolve([])
+    fallback: () => Promise.reject(new Error('Unsupported resource type'))
   };
 
-  return cacheWrapStream(args.id, handlers[args.type] || handlers.fallback)
+  return limiter.schedule(() => cacheWrapStream(args.id, handlers[args.type] || handlers.fallback))
       .then((streams) => ({
         streams: streams,
         cacheMaxAge: streams.length ? CACHE_MAX_AGE : CACHE_MAX_AGE_EMPTY,
