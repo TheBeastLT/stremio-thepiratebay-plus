@@ -35,7 +35,7 @@ const builder = new addonBuilder({
 
 const limiter = new Bottleneck({
   maxConcurrent: process.env.LIMIT_MAX_CONCURRENT || 10,
-  highWater: process.env.LIMIT_QUEUE_SIZE || 50,
+  highWater: process.env.LIMIT_QUEUE_SIZE || 30,
   strategy: Bottleneck.strategy.OVERFLOW
 });
 
@@ -45,12 +45,12 @@ builder.defineStreamHandler((args) => {
   }
 
   const handlers = {
-    series: () => seriesStreamHandler(args),
-    movie: () => movieStreamHandler(args),
+    series: () => limiter.schedule(() => seriesStreamHandler(args)),
+    movie: () => limiter.schedule(() => movieStreamHandler(args)),
     fallback: () => Promise.reject(new Error('Unsupported resource type'))
   };
 
-  return limiter.schedule(() => cacheWrapStream(args.id, handlers[args.type] || handlers.fallback))
+  return cacheWrapStream(args.id, handlers[args.type] || handlers.fallback)
       .then((streams) => ({
         streams: streams,
         cacheMaxAge: streams.length ? CACHE_MAX_AGE : CACHE_MAX_AGE_EMPTY,
