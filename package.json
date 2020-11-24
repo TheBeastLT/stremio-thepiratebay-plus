@@ -26,7 +26,7 @@
     "magnet-uri": "^5.1.7",
     "moment": "^2.24.0",
     "name-to-imdb": "^2.2.0",
-    "parse-torrent-title": "git://github.com/TheBeastLT/parse-torrent-title.git#afd4a374276420c13c52df8e3d07ae7699c46b60",
+    "parse-torrent-title": "git://github.com/TheBeastLT/parse-torrent-title.git#195ae39ccc3677148897144f80ff747005cb80fa",
     "request": "^2.88.2",
     "request-promise": "^4.2.5",
     "stremio-addon-sdk": "^1.4.0",
