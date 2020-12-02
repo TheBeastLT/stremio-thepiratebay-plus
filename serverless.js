@@ -5,8 +5,8 @@ const addonInterface = require('./addon');
 const router = getRouter(addonInterface);
 
 const limiter = rateLimit({
-  windowMs: 10 * 1000, // 10 seconds
-  max: 10, // limit each IP to 10 requests per windowMs
+  windowMs: 60 * 60 * 1000, // 10 seconds
+  max: 200, // limit each IP to 200 requests per windowMs
   headers: false
 });
 

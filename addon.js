@@ -34,8 +34,8 @@ const builder = new addonBuilder({
 });
 
 const limiter = new Bottleneck({
-  maxConcurrent: process.env.LIMIT_MAX_CONCURRENT || 10,
-  highWater: process.env.LIMIT_QUEUE_SIZE || 30,
+  maxConcurrent: process.env.LIMIT_MAX_CONCURRENT || 15,
+  highWater: process.env.LIMIT_QUEUE_SIZE || 20,
   strategy: Bottleneck.strategy.OVERFLOW
 });
 
