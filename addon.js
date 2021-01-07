@@ -70,9 +70,9 @@ async function seriesStreamHandler(args) {
   // No need to cache episode query torrent, since it's better to cache the constructed streams.
   // @TODO when caching disjoin imdb and title results to cache only unique torrents to save space
   const results = await Promise.all([
-    torrentSearch(seriesInfo.imdb, true, true),
-    torrentSearch(seriesInfo.title, true, true),
-    torrentSearch(seriesInfo.communityTitle, true, true),
+    torrentSearch(seriesInfo.imdb, true),
+    torrentSearch(seriesInfo.title, true),
+    torrentSearch(seriesInfo.communityTitle, true),
     torrentSearch(seriesInfo.episodeTitle)
   ]);
 
