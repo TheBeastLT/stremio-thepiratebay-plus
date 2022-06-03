@@ -129,7 +129,7 @@ async function movieStreamHandler(args) {
 function findEpisodes(torrent, seriesInfo) {
   if (containSingleEpisode(torrent, seriesInfo)) {
     // no need to open torrent containing just the correct episode
-    torrent.episodes = [{ name: torrent.name }];
+    torrent.episodes = [{ name: torrent.name, size: torrent.size }];
     return Promise.resolve(torrent);
   }
 
@@ -137,13 +137,16 @@ function findEpisodes(torrent, seriesInfo) {
   const episode = seriesInfo.episode;
   const absEpisode = seriesInfo.absoluteEpisode;
   return torrentFiles(torrent)
+      .then((files) => files
+          .map((file) => file.split('@@'))
+          .map((fileParts) => ({
+            name: fileParts[1].replace(/.+\//, ''),
+            path: fileParts[1],
+            index: parseInt(fileParts[0]),
+            size: fileParts[2]
+          })))
       .then((files) => {
         let episodes = onlyPossibleEpisodes(files, season, episode, absEpisode)
-            .map((file) => ({
-              name: file.replace(/.+\/|^\d+@@/, ''),
-              path: file.replace(/^\d+@@/, ''),
-              index: parseInt(file.match(/^(\d+)@@/)[1])
-            }))
             .filter((file) => isCorrectEpisode(torrent, file, seriesInfo))
             .sort((a, b) => a.episode - b.episode);
 

@@ -38,5 +38,5 @@ jobs:
           docker load -i /tmp/docker/tpb_latest.tar
           docker stop tpb-plus
           docker rm tpb-plus
-          docker run -p 8000:7000 -d --name tpb-plus --restart always --log-opt max-size=50m -e PROXIES=${{ secrets.TPB_PROXIES }} -e MONGODB_URI=${{ secrets.MONGODB_URI }}  thepiratebay-plus:latest
+          docker run -p 8000:7000 -d --name tpb-plus --restart always --log-opt max-size=50m -e PROXIES="${{ secrets.TPB_PROXIES }}" -e MONGODB_URI="${{ secrets.MONGODB_URI }}" thepiratebay-plus:latest
           docker image prune -f
