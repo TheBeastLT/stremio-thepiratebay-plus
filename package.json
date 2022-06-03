@@ -3,8 +3,7 @@
   "version": "1.4.0",
   "main": "addon.js",
   "engines": {
-    "npm": "6.x",
-    "node": "10.x"
+    "node": "16.x"
   },
   "scripts": {
     "start": "node index.js",
