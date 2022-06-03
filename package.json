@@ -13,6 +13,7 @@
   "author": "TheBeastLT <pauliox@beyond.lt>",
   "license": "MIT",
   "dependencies": {
+    "axios": "^0.27.2",
     "bottleneck": "^2.19.5",
     "cache-manager": "^2.9.0",
     "cache-manager-mongodb": "^0.2.1",
@@ -26,8 +27,6 @@
     "moment": "^2.29.2",
     "name-to-imdb": "^2.2.0",
     "parse-torrent-title": "git://github.com/TheBeastLT/parse-torrent-title.git#e94682462d748a9ecd256a37fab98a20f0306255",
-    "request": "^2.88.2",
-    "request-promise": "^4.2.5",
     "stremio-addon-sdk": "^1.4.0",
     "torrent-stream": "^1.1.0"
   },
