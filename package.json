@@ -24,7 +24,7 @@
     "is-video": "^1.0.1",
     "lodash": "^4.17.21",
     "magnet-uri": "^6.2.0",
-    "moment": "^2.29.3",
+    "moment": "^2.29.4",
     "name-to-imdb": "^3.0.4",
     "parse-torrent-title": "git://github.com/TheBeastLT/parse-torrent-title.git#39ddb37b343f2028511a12180897dab974f35268",
     "stremio-addon-sdk": "^1.6.5",
