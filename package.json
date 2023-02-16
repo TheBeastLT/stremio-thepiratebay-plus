@@ -15,8 +15,8 @@
   "dependencies": {
     "axios": "^0.27.2",
     "bottleneck": "^2.19.5",
-    "cache-manager": "^2.9.0",
-    "cache-manager-mongodb": "^0.2.1",
+    "cache-manager": "^3.4.4",
+    "cache-manager-mongodb": "^0.3.0",
     "cheerio": "^0.22.0",
     "express": "^4.17.1",
     "express-rate-limit": "^5.1.1",
@@ -25,15 +25,9 @@
     "lodash": "^4.17.21",
     "magnet-uri": "^6.2.0",
     "moment": "^2.29.3",
-    "name-to-imdb": "^3.0.2",
-    "parse-torrent-title": "git://github.com/TheBeastLT/parse-torrent-title.git#b07e597f1cf132d2d4c992d7c052b5ebdfb6965c",
+    "name-to-imdb": "^3.0.4",
+    "parse-torrent-title": "git://github.com/TheBeastLT/parse-torrent-title.git#39ddb37b343f2028511a12180897dab974f35268",
     "stremio-addon-sdk": "^1.6.5",
     "torrent-stream": "^1.2.1"
-  },
-  "devDependencies": {
-    "eslint": "^6.4.0",
-    "eslint-config-eslint": "^6.0.0",
-    "eslint-config-google": "^0.14.0",
-    "eslint-plugin-node": "^10.0.0"
   }
 }
