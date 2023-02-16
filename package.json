@@ -18,7 +18,7 @@
     "cache-manager": "^3.4.4",
     "cache-manager-mongodb": "^0.3.0",
     "cheerio": "^0.22.0",
-    "express": "^4.17.1",
+    "express": "^4.17.3",
     "express-rate-limit": "^5.1.1",
     "imdb": "^1.1.0",
     "is-video": "^1.0.1",
