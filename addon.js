@@ -89,7 +89,7 @@ async function seriesStreamHandler(args) {
       .filter((torrent) => torrent.seeders > 0)
       .filter((torrent) => canContainEpisode(torrent, seriesInfo, results[0].includes(torrent))) // for imdb search results we want to check only season info
       .sort((a, b) => b.seeders - a.seeders)
-      .slice(0, 5)
+      .slice(0, 10)
       .map((torrent) => findEpisodes(torrent, seriesInfo));
   const torrents = await Promise.all(torrentsToOpen);
   console.log('found torrents: ', torrents.map((torrent) => `${torrent.name}:${torrent.seeders}`));
