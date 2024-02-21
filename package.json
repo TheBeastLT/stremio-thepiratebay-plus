@@ -13,7 +13,7 @@
   "author": "TheBeastLT <pauliox@beyond.lt>",
   "license": "MIT",
   "dependencies": {
-    "axios": "^0.27.2",
+    "axios": "^0.28.0",
     "bottleneck": "^2.19.5",
     "cache-manager": "^3.4.4",
     "cache-manager-mongodb": "^0.3.0",
