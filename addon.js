@@ -39,6 +39,20 @@ const limiter = new Bottleneck({
   strategy: Bottleneck.strategy.OVERFLOW
 });
 
+const DROP_LOG_INTERVAL = 10000;
+let droppedCount = 0;
+let lastDropLog = Date.now();
+
+function logDrop() {
+  droppedCount += 1;
+  const now = Date.now();
+  if (now - lastDropLog >= DROP_LOG_INTERVAL) {
+    console.log(`Bottleneck shed ${droppedCount} jobs (backpressure) in last ${Math.round((now - lastDropLog) / 1000)}s`);
+    droppedCount = 0;
+    lastDropLog = now;
+  }
+}
+
 builder.defineStreamHandler((args) => {
   if (!args.id.match(/tt\d+/i)) {
     return Promise.resolve({ streams: [] });
@@ -58,8 +72,12 @@ builder.defineStreamHandler((args) => {
         staleError: STALE_ERROR_AGE
       }))
       .catch((error) => {
-        console.log(`Failed request ${args.id}: ${error}`);
-        throw error;
+        if (error instanceof Bottleneck.BottleneckError) {
+          logDrop();
+        } else {
+          console.log(`Failed request ${args.id}: ${error?.message || error}`);
+        }
+        return { streams: [], cacheMaxAge: CACHE_MAX_AGE_EMPTY };
       });
 });
 
