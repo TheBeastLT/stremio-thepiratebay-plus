@@ -110,7 +110,6 @@ async function seriesStreamHandler(args) {
       .slice(0, 10)
       .map((torrent) => findEpisodes(torrent, seriesInfo));
   const torrents = await Promise.all(torrentsToOpen);
-  console.log('found torrents: ', torrents.map((torrent) => `${torrent.name}:${torrent.seeders}`));
 
   const streams = torrents
       .filter((torrent) => torrent.episodes)
@@ -119,7 +118,6 @@ async function seriesStreamHandler(args) {
           .slice(0, 3)) // just in case we flood
       .reduce((a, b) => a.concat(b), [])
       .filter((stream) => stream.infoHash);
-  console.log('streams: ', streams.map((stream) => stream.title));
   return streams;
 }
 
