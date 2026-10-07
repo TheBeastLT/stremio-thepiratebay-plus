@@ -1,4 +1,4 @@
-FROM node:16-alpine
+FROM node:26-alpine
 
 RUN apk update && apk upgrade && \
     apk add --no-cache git
@@ -6,7 +6,7 @@ RUN apk update && apk upgrade && \
 WORKDIR /home/node/app
 
 COPY package*.json ./
-RUN npm ci --only-production
+RUN npm ci --omit=dev
 COPY . .
 
 CMD [ "node", "index.js" ]
